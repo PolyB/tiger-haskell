@@ -5,4 +5,4 @@ import Parse.Tokens
 
 -- TODO output the AST
 parser :: TParser ()
-parser = t_array 
+parser = tok_array 

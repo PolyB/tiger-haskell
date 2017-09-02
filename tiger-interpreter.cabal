@@ -16,11 +16,14 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Parse
-                      ,Parse.TParser
+  other-modules:       Parse.TParser
                       ,Parse.Tokens
+                      ,Parse.TokenTH
+
   build-depends:       base >= 4.7 && < 5
                       ,bytestring
                       ,parsec
+                      ,template-haskell
   default-language:    Haskell2010
   ghc-options:         -Wall
 
