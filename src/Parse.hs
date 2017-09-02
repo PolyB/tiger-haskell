@@ -3,7 +3,7 @@ module Parse (parser) where
 import Parse.TParser
 import Parse.Tokens
 import Text.Parsec.Prim ((<|>), try)
-import qualified Prelude
+import Prelude (return, (>>))
 import Text.Parsec.Combinator as PS
 
 
@@ -12,7 +12,11 @@ a <> b = do
           _ <- a
           tok_ignore
           _ <- b
-          Prelude.return ()
+          return ()
+
+skipOptionnal:: TParser a -> TParser ()
+skipOptionnal p =PS.optional (tok_ignore >> p)
+                  
 
 
 -- TODO output the AST
@@ -25,6 +29,6 @@ exp :: TParser ()
 exp =     try tok_nil
       <|> (tok_minus <> exp)
       <|> (tok_o_paren <> exp <> tok_e_paren)
-      <|> try (tok_if <> exp <> tok_then <> exp <> PS.optional (tok_else <> exp))
+      <|> try (tok_if <> exp <> tok_then <> exp <> skipOptionnal (tok_ignore <> tok_else <> exp))
       <|> try (tok_while <> exp <> tok_do <> exp)
       <|> try tok_break

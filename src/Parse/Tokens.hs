@@ -4,7 +4,7 @@ module Parse.Tokens where
 
 import Parse.TokenTH
 import Parse.TParser
-import Text.Parsec.Prim
+import Text.Parsec.Combinator
 import Text.Parsec.Char
 
 -- generate the definiton of tok_*name*
@@ -58,5 +58,5 @@ $(mktoks [
 
 -- TODO : add comments
 tok_ignore :: TParser ()
-tok_ignore = skipMany (oneOf " \t\n\r")
+tok_ignore = skipMany1 (oneOf " \t\n\r")
 
