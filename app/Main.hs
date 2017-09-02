@@ -1,6 +1,9 @@
 module Main where
 
-import Lib
+import Data.ByteString as BS
+import Parse
+import Text.Parsec.Prim as P
+
 
 main :: IO ()
-main = return ()
+main = P.parseTest parser =<< BS.getLine
