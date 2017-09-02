@@ -29,6 +29,6 @@ exp :: TParser ()
 exp =     try tok_nil
       <|> (tok_minus <> exp)
       <|> (tok_o_paren <> exp <> tok_e_paren)
-      <|> try (tok_if <> exp <> tok_then <> exp <> skipOptionnal (tok_ignore <> tok_else <> exp))
+      <|> try (tok_if <> exp <> tok_then <> exp >> skipOptionnal (tok_ignore <> tok_else <> exp))
       <|> try (tok_while <> exp <> tok_do <> exp)
       <|> try tok_break
