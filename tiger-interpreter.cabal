@@ -40,9 +40,13 @@ executable tiger-interpreter-exe
 test-suite tiger-interpreter-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
-  main-is:             Spec.hs
+  main-is:             Test.hs
+  other-modules:       TestParser
   build-depends:       base
                      , tiger-interpreter
+                     , QuickCheck
+                     , parsec
+                     , bytestring
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
