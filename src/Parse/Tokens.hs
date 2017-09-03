@@ -1,62 +1,55 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Parse.Tokens where
 
-import Parse.TokenTH
-import Parse.TParser
-import Text.Parsec.Combinator
-import Text.Parsec.Char
+import Text.Parsec.Pos
+import Data.ByteString.Lazy
 
--- generate the definiton of tok_*name*
-$(mktoks ((\a ->(a,a)) <$> [
-  "array",
-  "if",
-  "then",
-  "else",
-  "while",
-  "for",
-  "to",
-  "do",
-  "let",
-  "in",
-  "end",
-  "of",
-  "break",
-  "nil",
-  "function",
-  "var",
-  "type",
-  "import",
-  "primitive"
-          ]))
+data PosToken = PosToken SourcePos Token
+           deriving (Show)
 
-$(mktoks [
-  ("comma", ","),
-  ("assign", ":="),
-  ("colon", ":"),
-  ("semicolon", ";"),
-  ("o_paren", "("),
-  ("e_paren", ")"),
-  ("o_bracket", "["),
-  ("e_bracket", "]"),
-  ("o_brace", "{"),
-  ("e_brace", "}"),
-  ("dot", "."),
-  ("plus", "+"),
-  ("minus", "-"),
-  ("mult", "*"),
-  ("div", "/"),
-  ("diff", "<>"),
-  ("inferior_eq", "<="),
-  ("superior_eq", ">="),
-  ("equal", "="),
-  ("inferior", "<"),
-  ("superior", ">"),
-  ("and", "&"),
-  ("or", "|")
-  ])
-
--- TODO : add comments
-tok_ignore :: TParser ()
-tok_ignore = skipMany1 (oneOf " \t\n\r")
-
+data Token = T_Int     !Int
+           | T_String  !ByteString
+           | T_Array
+           | T_If
+           | T_Then
+           | T_Else
+           | T_While
+           | T_For
+           | T_To
+           | T_Do
+           | T_Let
+           | T_In
+           | T_End
+           | T_Of
+           | T_Break
+           | T_Nil
+           | T_Function
+           | T_Var
+           | T_Type
+           | T_Import
+           | T_Primitive
+           | T_Comma
+           | T_Assign
+           | T_Colon
+           | T_Semicolon
+           | T_OParen
+           | T_EParen
+           | T_OBracket
+           | T_EBracket
+           | T_OBrace
+           | T_EBrace
+           | T_Dot
+           | T_Plus
+           | T_Minus
+           | T_Mult
+           | T_Div
+           | T_Diff
+           | T_InferiorEQ
+           | T_SuperiorEQ
+           | T_Equal
+           | T_Inferior
+           | T_Superior
+           | T_And
+           | T_Or
+           | T_Id       !ByteString
+           deriving (Eq, Show)
+           -- TODO : proper show instance

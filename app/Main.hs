@@ -1,9 +1,12 @@
 module Main where
 
-import Data.ByteString as BS
+import Prelude (IO, (=<<), flip, (<$>), print)
+import Data.ByteString.Lazy as BS
 import Parse
+import Parse.Lexer
 import Text.Parsec.Prim as P
+import Text.Parsec.Pos as PS
 
 
 main :: IO ()
-main = P.parseTest parser =<< BS.getLine
+main = print =<< ((\x -> lex x (PS.initialPos ""))<$> BS.getContents)
