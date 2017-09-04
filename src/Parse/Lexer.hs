@@ -6,14 +6,15 @@ import Control.Monad (msum, when)
 import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as BSLC
 import Parse.Tokens
-import Prelude (Maybe(Nothing, Just), ($), fromIntegral, (<$>), Char, (==), return, not, flip)
+import Prelude (Maybe(Nothing, Just), ($), fromIntegral, (<$>), Char, (==), return, not, flip, until, String, (||), )
+import Data.Maybe (isJust, fromJust)
 import Text.Parsec.Pos
 
 type Lexer = BSL.ByteString -> Maybe (SourcePos -> (SourcePos, BSL.ByteString, Maybe Token))
 
 
 lex:: BSL.ByteString -> SourcePos -> [PosToken]
-lex s p = case blex s of
+lex s p = case (err blex) s of
             Nothing -> []
             Just f -> case f p of 
                       (pos, rest, Nothing) -> (lex rest pos)
@@ -45,7 +46,18 @@ space str = do
               when (not $ BSLC.elem c " \t") Nothing
               return (\s -> (incSourceColumn s 1, r, Nothing))
                             
+skipUntilOk:: ByteString -> Lexer -> SourcePos -> (SourcePos, BSL.ByteString, String)
+skipUntilOk input ref pos = until 
+                              (\(_,s, _)-> BSLC.null s || (isJust $ ref s)) 
+                              (\(p,s, sk) -> (\(c,r) -> (incSourceColumn p 1, r, c:sk))$ fromJust $ BSLC.uncons s)
+                              (pos, input, "")
 
+-- | call the lexer and produce an error token on error
+err :: Lexer -> Lexer
+err f s = if BSLC.null s then Nothing else 
+                  Just $ case blex s of
+                    (Just v) -> v
+                    Nothing -> (\startpos -> (\(goodPos, goodStr, skipped) -> (goodPos, goodStr, Just $ T_Err $ skipped)) $ skipUntilOk s f startpos)
 blex::  Lexer
 blex str = msum $ (\x -> x str) <$> [
       eol

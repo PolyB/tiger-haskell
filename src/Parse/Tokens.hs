@@ -51,5 +51,6 @@ data Token = T_Int     !Int
            | T_And
            | T_Or
            | T_Id       !ByteString
+           | T_Err      !String
            deriving (Eq, Show)
            -- TODO : proper show instance
