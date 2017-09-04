@@ -2,38 +2,55 @@
 
 module Parse.Lexer (lex) where
 
-import Control.Monad (msum)
+import Control.Monad (msum, when)
 import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as BSLC
 import Parse.Tokens
-import Prelude (Maybe(Nothing, Just), ($), fromIntegral, (<$>), Char, (==), return)
+import Prelude (Maybe(Nothing, Just), ($), fromIntegral, (<$>), Char, (==), return, not, flip)
 import Text.Parsec.Pos
 
-type Lexer = BSL.ByteString -> Maybe (SourcePos -> (SourcePos, BSL.ByteString, Token))
+type Lexer = BSL.ByteString -> Maybe (SourcePos -> (SourcePos, BSL.ByteString, Maybe Token))
 
 
 lex:: BSL.ByteString -> SourcePos -> [PosToken]
 lex s p = case blex s of
             Nothing -> []
-            Just f -> (PosToken pos tok):(lex rest pos)
-                      where (pos, rest, tok) = f p
+            Just f -> case f p of 
+                      (pos, rest, Nothing) -> (lex rest pos)
+                      (pos, rest, Just tok) -> (PosToken p tok):(lex rest pos)
 
 
 mktok:: BSL.ByteString -> Token -> Lexer
-mktok str res input = (\rest src -> (incSourceColumn src $ fromIntegral $ BSL.length str, rest, res))<$> BSL.stripPrefix str input
+mktok str res input = (\rest src -> (incSourceColumn src $ fromIntegral $ BSL.length str, rest, Just res))<$> BSL.stripPrefix str input
 
 mktokc:: Char -> Token -> Lexer
 mktokc c res input = do
                       (oc, rest) <- BSLC.uncons input
                       if oc == c then
-                        return (\src -> (incSourceColumn src 1, rest, res))
+                        return (\src -> (incSourceColumn src 1, rest, Just res))
                       else
                         Nothing
 --mktokc c res input = (\rest src -> (incSourceColumn src 1, rest, res))<$> BSL.uncons str input
 
+eol:: Lexer
+eol str = do  (c, r) <- BSLC.uncons str
+              when (not $ BSLC.elem c "\n\r") Nothing
+              case BSLC.uncons r of
+                Just ('\n', r2) | (c == '\r') -> Just (\s -> (flip setSourceColumn 0 $ incSourceLine s 1, r2, Nothing))
+                Just ('\r', r2) | (c == '\n') -> Just (\s -> (flip setSourceColumn 0 $ incSourceLine s 1, r2, Nothing))
+                _                             -> Just (\s -> (flip setSourceColumn 0 $ incSourceLine s 1, r, Nothing))
+space:: Lexer
+space str = do
+              (c,r) <- BSLC.uncons str
+              when (not $ BSLC.elem c " \t") Nothing
+              return (\s -> (incSourceColumn s 1, r, Nothing))
+                            
+
 blex::  Lexer
 blex str = msum $ (\x -> x str) <$> [
-      mktok "array" T_Array
+      eol
+     ,space
+     ,mktok "array" T_Array
      ,mktok "break" T_Break
      ,mktok "do" T_Do
      ,mktok "else" T_Else
