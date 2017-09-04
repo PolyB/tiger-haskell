@@ -1,7 +1,7 @@
 module Parse.Tokens where
 
 import Text.Parsec.Pos
-import Data.ByteString.Lazy
+import Data.ByteString
 
 data PosToken = PosToken SourcePos Token
            deriving (Show)
