@@ -57,8 +57,8 @@ instance Tokenable Token () where
   mktoken T_And         = mkmktoken "`&`" T_And
   mktoken T_Or          = mkmktoken "`|`" T_Or
   mktoken v@(T_Id i)    = mkmktoken (B.unpack i) v
-  mktoken v@(T_Err i)   = mkmktoken i v
-  mktoken v@(T_String s)= mkmktoken ("\"" ++ B.unpack s ++ "\"") v
+  mktoken v@(T_Err e)   = mkmktoken (show e) v
+  mktoken v@(T_String s)= mkmktoken ("\"" ++ s ++ "\"") v
   mktoken v@(T_Int i)   = mkmktoken (show i) v
 
 (&) ::Tokenable t a => t -> TParser a

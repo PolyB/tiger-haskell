@@ -2,12 +2,12 @@
 
 module Parse.Lexer (lex) where
 
-import Control.Monad (msum, when)
+import Control.Monad (msum, when, (=<<), (>>=))
 import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as BSLC
 import Parse.Tokens
-import Prelude (Maybe(Nothing, Just), ($), fromIntegral, (<$>), Char, (==), return, not, flip, until, String, (||), )
-import Data.Maybe (isJust, fromJust)
+import Prelude (Maybe(Nothing, Just), ($), fromIntegral, (<$>), Char, (==), return, not, flip, until, String, (||), Either(Left, Right), id, (.), either)
+import Data.Maybe (isJust, fromJust, fromMaybe)
 import Text.Parsec.Pos
 
 type Lexer = BSL.ByteString -> Maybe (SourcePos -> (SourcePos, BSL.ByteString, Maybe Token))
@@ -57,11 +57,35 @@ err :: Lexer -> Lexer
 err f s = if BSLC.null s then Nothing else 
                   Just $ case blex s of
                     (Just v) -> v
-                    Nothing -> (\startpos -> (\(goodPos, goodStr, skipped) -> (goodPos, goodStr, Just $ T_Err $ skipped)) $ skipUntilOk s f startpos)
+                    Nothing -> (\startpos -> (\(goodPos, goodStr, skipped) -> (goodPos, goodStr, Just $ T_Err $ UnknownToken $ skipped)) $ skipUntilOk s f startpos)
+
+-- TODO : the string parser is ugly
+stringParser:: BSL.ByteString -> (Either ErrorTokenType (Maybe Char), BSL.ByteString, SourcePos -> SourcePos)
+stringParser s = fromMaybe (Left UnfinishedString, s, id) $ (\(c, r) -> case c of 
+                                                                      '\n' -> (Left NewlineInString, takeoneIf (=='\r') r, (flip incSourceLine) 1 . (flip setSourceColumn) 0)
+                                                                      '\r' -> (Left NewlineInString, takeoneIf (=='\n') r, (flip incSourceLine) 1 . (flip setSourceColumn) 0)
+                                                                      '\\' -> (Left BadEscapeCharacter, r, (flip incSourceLine) 1) -- TODO
+                                                                      '"'  -> (Right Nothing, r, (flip incSourceLine 1))
+                                                                      _    -> (Right $ Just c, r, (flip incSourceLine) 1)
+                                                                            ) <$> BSLC.uncons s
+                   where takeoneIf p str = fromMaybe str $ ((\(c,r) -> if p c then Just r else Nothing) =<< BSLC.uncons str)
+
+string :: Lexer
+string input = BSLC.uncons input >>= (\(c,r) -> if c == '"' then Just $ stringlex r else Nothing)
+            where stringlex str src = (\(f, r, t) -> (f src, r, Just $ either T_Err T_String t)) $ parseiterate str
+                  parseiterate s  = case stringParser s of
+                                          (Left t, rest, f) -> (f, rest, Left t)
+                                          (Right Nothing, rest,f) -> (f, rest, Right "")
+                                          (Right (Just c), rest, f) -> case parseiterate rest of
+                                                                             (rf, rr, Right ps) -> (f . rf, rr, Right (c:ps))
+                                                                             (rf, rr, Left BadEscapeCharacter) -> (\(stringrest, r) ->(f . rf . flip (BSLC.foldl updatePosChar) stringrest, r, Left BadEscapeCharacter)) $ BSLC.break (=='=') rr
+                                                                             (rf, rr, x)  -> (f . rf, rr, x)
+            
 blex::  Lexer
 blex str = msum $ (\x -> x str) <$> [
       eol
      ,space
+     ,string
      ,mktok "array" T_Array
      ,mktok "break" T_Break
      ,mktok "do" T_Do

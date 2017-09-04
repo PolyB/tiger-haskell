@@ -7,7 +7,7 @@ data PosToken = PosToken SourcePos Token
            deriving (Show)
 
 data Token = T_Int     !Int
-           | T_String  !ByteString
+           | T_String  String
            | T_Array
            | T_If
            | T_Then
@@ -51,6 +51,12 @@ data Token = T_Int     !Int
            | T_And
            | T_Or
            | T_Id       !ByteString
-           | T_Err      !String
+           | T_Err      ErrorTokenType
            deriving (Eq, Show)
            -- TODO : proper show instance
+
+data ErrorTokenType = UnknownToken !String
+                    | UnfinishedString
+                    | NewlineInString
+                    | BadEscapeCharacter
+           deriving (Eq, Show)
