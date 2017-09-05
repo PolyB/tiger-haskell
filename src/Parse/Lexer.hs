@@ -2,10 +2,11 @@
 
 module Parse.Lexer (lex) where
 
-import Control.Monad (msum, when, (=<<), (>>=))
+import Control.Monad (msum, mplus ,when, (=<<), (>>=), unless,liftM2)
 import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as BSLC
 import Parse.Tokens
+import Data.Char as C
 import Prelude (Maybe(Nothing, Just), ($), fromIntegral, (<$>), Char, (==), return, not, flip, until, String, (||), Either(Left, Right), id, (.), either)
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import Text.Parsec.Pos
@@ -80,7 +81,17 @@ string input = BSLC.uncons input >>= (\(c,r) -> if c == '"' then Just $ stringle
                                                                              (rf, rr, Right ps) -> (f . rf, rr, Right (c:ps))
                                                                              (rf, rr, Left BadEscapeCharacter) -> (\(stringrest, r) ->(f . rf . flip (BSLC.foldl updatePosChar) stringrest, r, Left BadEscapeCharacter)) $ BSLC.break (=='=') rr
                                                                              (rf, rr, x)  -> (f . rf, rr, x)
-            
+
+identifier:: Lexer
+identifier = (\s -> ((mktok "_main" $ T_Id "_main") s) `mplus` idt s)
+                    where idt str = do 
+                                      (c, rs) <- BSLC.uncons str
+                                      unless (C.isAlpha c) Nothing
+                                      let (p,r) = BSLC.span (liftM2 (||) C.isAlphaNum (=='_')) rs
+                                      let sidentifier = BSLC.cons c p
+                                      return (\s-> (incSourceColumn s $ fromIntegral $length sidentifier, r, Just $ T_Id $ BSLC.toStrict sidentifier))
+
+
 blex::  Lexer
 blex str = msum $ (\x -> x str) <$> [
       eol
@@ -128,4 +139,5 @@ blex str = msum $ (\x -> x str) <$> [
      ,mktokc '>' T_Superior
      ,mktokc '&' T_And
      ,mktokc '|' T_Or
+     ,identifier
                 ]
