@@ -7,7 +7,7 @@ import Data.ByteString.Lazy as BSL
 import Data.ByteString.Lazy.Char8 as BSLC
 import Parse.Tokens
 import Data.Char as C
-import Prelude (Maybe(Nothing, Just), ($), fromIntegral, (<$>), Char, (==), return, not, flip, until, String, (||), Either(Left, Right), id, (.), either)
+import Prelude (Maybe(Nothing, Just), ($), fromIntegral, (<$>), Char, (==), return, not, flip, until, String, (||), Either(Left, Right), id, (.), either, read)
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import Text.Parsec.Pos
 
@@ -90,7 +90,8 @@ identifier = (\s -> ((mktok "_main" $ T_Id "_main") s) `mplus` idt s)
                                       let (p,r) = BSLC.span (liftM2 (||) C.isAlphaNum (=='_')) rs
                                       let sidentifier = BSLC.cons c p
                                       return (\s-> (incSourceColumn s $ fromIntegral $length sidentifier, r, Just $ T_Id $ BSLC.toStrict sidentifier))
-
+integer:: Lexer
+integer s = (\(f,rest) -> if BSLC.null f then Nothing else Just (\src -> (incSourceColumn src (fromIntegral$BSLC.length f), rest, Just $ T_Int $ read $ BSLC.unpack f)))$ BSLC.span (C.isDigit) s
 
 blex::  Lexer
 blex str = msum $ (\x -> x str) <$> [
@@ -139,5 +140,6 @@ blex str = msum $ (\x -> x str) <$> [
      ,mktokc '>' T_Superior
      ,mktokc '&' T_And
      ,mktokc '|' T_Or
+     ,integer
      ,identifier
                 ]
