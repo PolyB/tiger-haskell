@@ -1,100 +1,31 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Parse.Lexer (lex) where
 
-import Control.Monad (msum, mplus ,when, (=<<), (>>=), unless,liftM2)
-import Data.ByteString.Lazy as BSL
-import Data.ByteString.Lazy.Char8 as BSLC
+import Data.Monoid (mconcat)
 import Parse.Tokens
-import Data.Char as C
-import Prelude (Maybe(Nothing, Just), ($), fromIntegral, (<$>), Char, (==), return, not, flip, until, String, (||), Either(Left, Right), id, (.), either, read)
-import Data.Maybe (isJust, fromJust, fromMaybe)
+import Data.Maybe (Maybe(Nothing, Just))
 import Text.Parsec.Pos
+import Data.ByteString.Lazy as BSL
 
-type Lexer = BSL.ByteString -> Maybe (SourcePos -> (SourcePos, BSL.ByteString, Maybe Token))
-
+import Parse.Lexer.Types
+import Parse.Lexer.MkTok
+import Parse.Lexer.Error
+import Parse.Lexer.Eol
+import Parse.Lexer.Space
+import Parse.Lexer.String
+import Parse.Lexer.Integer
+import Parse.Lexer.Identifier
 
 lex:: BSL.ByteString -> SourcePos -> [PosToken]
-lex s p = case (err blex) s of
+lex s p = case doLex (err blex) s of
             Nothing -> []
-            Just f -> case f p of 
-                      (pos, rest, Nothing) -> (lex rest pos)
-                      (pos, rest, Just tok) -> (PosToken p tok):(lex rest pos)
-
-
-mktok:: BSL.ByteString -> Token -> Lexer
-mktok str res input = (\rest src -> (incSourceColumn src $ fromIntegral $ BSL.length str, rest, Just res))<$> BSL.stripPrefix str input
-
-mktokc:: Char -> Token -> Lexer
-mktokc c res input = do
-                      (oc, rest) <- BSLC.uncons input
-                      if oc == c then
-                        return (\src -> (incSourceColumn src 1, rest, Just res))
-                      else
-                        Nothing
---mktokc c res input = (\rest src -> (incSourceColumn src 1, rest, res))<$> BSL.uncons str input
-
-eol:: Lexer
-eol str = do  (c, r) <- BSLC.uncons str
-              when (not $ BSLC.elem c "\n\r") Nothing
-              case BSLC.uncons r of
-                Just ('\n', r2) | (c == '\r') -> Just (\s -> (flip setSourceColumn 0 $ incSourceLine s 1, r2, Nothing))
-                Just ('\r', r2) | (c == '\n') -> Just (\s -> (flip setSourceColumn 0 $ incSourceLine s 1, r2, Nothing))
-                _                             -> Just (\s -> (flip setSourceColumn 0 $ incSourceLine s 1, r, Nothing))
-space:: Lexer
-space str = do
-              (c,r) <- BSLC.uncons str
-              when (not $ BSLC.elem c " \t") Nothing
-              return (\s -> (incSourceColumn s 1, r, Nothing))
-                            
-skipUntilOk:: ByteString -> Lexer -> SourcePos -> (SourcePos, BSL.ByteString, String)
-skipUntilOk input ref pos = until 
-                              (\(_,s, _)-> BSLC.null s || (isJust $ ref s)) 
-                              (\(p,s, sk) -> (\(c,r) -> (incSourceColumn p 1, r, c:sk))$ fromJust $ BSLC.uncons s)
-                              (pos, input, "")
-
--- | call the lexer and produce an error token on error
-err :: Lexer -> Lexer
-err f s = if BSLC.null s then Nothing else 
-                  Just $ case blex s of
-                    (Just v) -> v
-                    Nothing -> (\startpos -> (\(goodPos, goodStr, skipped) -> (goodPos, goodStr, Just $ T_Err $ UnknownToken $ skipped)) $ skipUntilOk s f startpos)
-
--- TODO : the string parser is ugly
-stringParser:: BSL.ByteString -> (Either ErrorTokenType (Maybe Char), BSL.ByteString, SourcePos -> SourcePos)
-stringParser s = fromMaybe (Left UnfinishedString, s, id) $ (\(c, r) -> case c of 
-                                                                      '\n' -> (Left NewlineInString, takeoneIf (=='\r') r, (flip incSourceLine) 1 . (flip setSourceColumn) 0)
-                                                                      '\r' -> (Left NewlineInString, takeoneIf (=='\n') r, (flip incSourceLine) 1 . (flip setSourceColumn) 0)
-                                                                      '\\' -> (Left BadEscapeCharacter, r, (flip incSourceLine) 1) -- TODO
-                                                                      '"'  -> (Right Nothing, r, (flip incSourceLine 1))
-                                                                      _    -> (Right $ Just c, r, (flip incSourceLine) 1)
-                                                                            ) <$> BSLC.uncons s
-                   where takeoneIf p str = fromMaybe str $ ((\(c,r) -> if p c then Just r else Nothing) =<< BSLC.uncons str)
-
-string :: Lexer
-string input = BSLC.uncons input >>= (\(c,r) -> if c == '"' then Just $ stringlex r else Nothing)
-            where stringlex str src = (\(f, r, t) -> (f src, r, Just $ either T_Err T_String t)) $ parseiterate str
-                  parseiterate s  = case stringParser s of
-                                          (Left t, rest, f) -> (f, rest, Left t)
-                                          (Right Nothing, rest,f) -> (f, rest, Right "")
-                                          (Right (Just c), rest, f) -> case parseiterate rest of
-                                                                             (rf, rr, Right ps) -> (f . rf, rr, Right (c:ps))
-                                                                             (rf, rr, Left BadEscapeCharacter) -> (\(stringrest, r) ->(f . rf . flip (BSLC.foldl updatePosChar) stringrest, r, Left BadEscapeCharacter)) $ BSLC.break (=='=') rr
-                                                                             (rf, rr, x)  -> (f . rf, rr, x)
-
-identifier:: Lexer
-identifier = (\s -> ((mktok "_main" $ T_Id "_main") s) `mplus` idt s)
-                    where idt str = do 
-                                      (c, rs) <- BSLC.uncons str
-                                      unless (C.isAlpha c) Nothing
-                                      let (p,r) = BSLC.span (liftM2 (||) C.isAlphaNum (=='_')) rs
-                                      let sidentifier = BSLC.cons c p
-                                      return (\s-> (incSourceColumn s $ fromIntegral $length sidentifier, r, Just $ T_Id $ BSLC.toStrict sidentifier))
-integer:: Lexer
-integer s = (\(f,rest) -> if BSLC.null f then Nothing else Just (\src -> (incSourceColumn src (fromIntegral$BSLC.length f), rest, Just $ T_Int $ read $ BSLC.unpack f)))$ BSLC.span (C.isDigit) s
+            Just (pos,rest, Nothing) -> lex rest (pos p)
+            Just (pos,rest, Just tok) -> (PosToken p tok):(lex rest (pos p))
 
 blex::  Lexer
-blex str = msum $ (\x -> x str) <$> [
+blex = mconcat [
       eol
      ,space
      ,string

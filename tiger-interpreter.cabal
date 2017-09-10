@@ -20,6 +20,14 @@ library
   other-modules:       Parse.TParser
                       ,Parse.Tokens
                       ,Parse.Tokens.Instance
+                      ,Parse.Lexer.Eol
+                      ,Parse.Lexer.Error
+                      ,Parse.Lexer.Identifier
+                      ,Parse.Lexer.Integer
+                      ,Parse.Lexer.MkTok
+                      ,Parse.Lexer.Space
+                      ,Parse.Lexer.String
+                      ,Parse.Lexer.Types
 
   build-depends:       base >= 4.7 && < 5
                       ,bytestring
