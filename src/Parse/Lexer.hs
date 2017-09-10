@@ -17,6 +17,7 @@ import Parse.Lexer.Space
 import Parse.Lexer.String
 import Parse.Lexer.Integer
 import Parse.Lexer.Identifier
+import Parse.Lexer.Comment
 
 lex:: BSL.ByteString -> SourcePos -> [PosToken]
 lex s p = case doLex (err blex) s of
@@ -29,6 +30,7 @@ blex = mconcat [
       eol
      ,space
      ,string
+     ,comment
      ,mktok "array" T_Array
      ,mktok "break" T_Break
      ,mktok "do" T_Do
