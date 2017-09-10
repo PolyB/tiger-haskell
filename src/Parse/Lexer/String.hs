@@ -10,11 +10,14 @@ import Data.Maybe (fromMaybe)
 -- TODO : the string parser is ugly
 stringParser:: BSL.ByteString -> (Either ErrorTokenType (Maybe Char), BSL.ByteString, SourcePos -> SourcePos)
 stringParser s = fromMaybe (Left UnfinishedString, s, id) $ (\(c, r) -> case c of 
-                                                                      '\n' -> (Left NewlineInString, takeoneIf (=='\r') r, (flip incSourceLine) 1 . (flip setSourceColumn) 0)
-                                                                      '\r' -> (Left NewlineInString, takeoneIf (=='\n') r, (flip incSourceLine) 1 . (flip setSourceColumn) 0)
-                                                                      '\\' -> (Left BadEscapeCharacter, r, (flip incSourceLine) 1) -- TODO
-                                                                      '"'  -> (Right Nothing, r, (flip incSourceLine 1))
-                                                                      _    -> (Right $ Just c, r, (flip incSourceLine) 1)
+                                                                      '\n' -> (Left NewlineInString, takeoneIf (=='\r') r, srcnl)
+                                                                      '\r' -> (Left NewlineInString, takeoneIf (=='\n') r, srcnl)
+                                                                      '\\' -> (case BSLC.uncons r of
+                                                                                    Just ('"', r2) -> (Right $ Just '"', r2, srcinc 2)
+                                                                                    Just _         -> (Left BadEscapeCharacter, r, srcinc 1)
+                                                                                    Nothing        -> (Left UnfinishedString, r, srcinc 1)) 
+                                                                      '"'  -> (Right Nothing, r,  srcinc 1)
+                                                                      _    -> (Right $ Just c, r, srcinc 1)
                                                                             ) <$> BSLC.uncons s
                    where takeoneIf p str = fromMaybe str $ ((\(c,r) -> if p c then Just r else Nothing) =<< BSLC.uncons str)
 
