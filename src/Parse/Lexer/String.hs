@@ -5,7 +5,18 @@ import Parse.Tokens
 import Data.ByteString.Lazy.Char8 as BSLC
 import Data.ByteString.Lazy as BSL
 import Text.Parsec.Pos
+import Data.Char as C
 import Data.Maybe (fromMaybe)
+import Control.Monad (unless)
+
+hex:: BSL.ByteString -> Maybe (Char, BSL.ByteString, SourcePos -> SourcePos)
+hex r0 = do
+        (x1,r1) <- BSLC.uncons r0
+        unless (C.isHexDigit x1) Nothing
+        (x2,r2) <- BSLC.uncons r1
+        unless (C.isHexDigit x2) Nothing
+        let res = chr $ (C.digitToInt x1) * 16 + (C.digitToInt x2)
+        return (res, r2, srcinc 4)
 
 
 escapeSequence:: BSL.ByteString -> (Either ErrorTokenType (Maybe Char), BSL.ByteString, SourcePos -> SourcePos)
@@ -20,6 +31,9 @@ escapeSequence s = fromMaybe (Left UnfinishedString, s, id) $ escape <$> BSLC.un
                                               'r'  -> (Right $ Just '\r', rest, srcinc 2)
                                               't'  -> (Right $ Just '\t', rest, srcinc 2)
                                               'v'  -> (Right $ Just '\v', rest, srcinc 2)
+                                              'x'  -> (case hex rest of
+                                                            Just (c, r, p) -> (Right $ Just c, r, p)
+                                                            Nothing -> (Left BadEscapeCharacter, s, srcinc 1))
                                               _    -> (Left BadEscapeCharacter, s, srcinc 1)
 
 
