@@ -7,15 +7,21 @@ import Data.ByteString.Lazy as BSL
 import Text.Parsec.Pos
 import Data.Maybe (fromMaybe)
 
+
+escapeSequence:: BSL.ByteString -> (Either ErrorTokenType (Maybe Char), BSL.ByteString, SourcePos -> SourcePos)
+escapeSequence s = fromMaybe (Left UnfinishedString, s, id) $ escape <$> BSLC.uncons s
+                    where escape (x,rest) = case x of
+                                              '"' -> (Right $ Just '"', rest, srcinc 2)
+                                              _   -> (Left BadEscapeCharacter, s, srcinc 1)
+
+
+
 -- TODO : the string parser is ugly
 stringParser:: BSL.ByteString -> (Either ErrorTokenType (Maybe Char), BSL.ByteString, SourcePos -> SourcePos)
 stringParser s = fromMaybe (Left UnfinishedString, s, id) $ (\(c, r) -> case c of 
                                                                       '\n' -> (Left NewlineInString, takeoneIf (=='\r') r, srcnl)
                                                                       '\r' -> (Left NewlineInString, takeoneIf (=='\n') r, srcnl)
-                                                                      '\\' -> (case BSLC.uncons r of
-                                                                                    Just ('"', r2) -> (Right $ Just '"', r2, srcinc 2)
-                                                                                    Just _         -> (Left BadEscapeCharacter, r, srcinc 1)
-                                                                                    Nothing        -> (Left UnfinishedString, r, srcinc 1)) 
+                                                                      '\\' -> escapeSequence r 
                                                                       '"'  -> (Right Nothing, r,  srcinc 1)
                                                                       _    -> (Right $ Just c, r, srcinc 1)
                                                                             ) <$> BSLC.uncons s
