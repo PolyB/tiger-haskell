@@ -11,8 +11,16 @@ import Data.Maybe (fromMaybe)
 escapeSequence:: BSL.ByteString -> (Either ErrorTokenType (Maybe Char), BSL.ByteString, SourcePos -> SourcePos)
 escapeSequence s = fromMaybe (Left UnfinishedString, s, id) $ escape <$> BSLC.uncons s
                     where escape (x,rest) = case x of
-                                              '"' -> (Right $ Just '"', rest, srcinc 2)
-                                              _   -> (Left BadEscapeCharacter, s, srcinc 1)
+                                              '"'  -> (Right $ Just '"', rest, srcinc 2)
+                                              '\'' -> (Right $ Just '\'', rest, srcinc 2)
+                                              'a'  -> (Right $ Just '\a', rest, srcinc 2)
+                                              'b'  -> (Right $ Just '\b', rest, srcinc 2)
+                                              'f'  -> (Right $ Just '\f', rest, srcinc 2)
+                                              'n'  -> (Right $ Just '\n', rest, srcinc 2)
+                                              'r'  -> (Right $ Just '\r', rest, srcinc 2)
+                                              't'  -> (Right $ Just '\t', rest, srcinc 2)
+                                              'v'  -> (Right $ Just '\v', rest, srcinc 2)
+                                              _    -> (Left BadEscapeCharacter, s, srcinc 1)
 
 
 
