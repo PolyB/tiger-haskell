@@ -10,4 +10,4 @@ import Text.Parsec.Pos as PS
 
 
 main :: IO ()
-main = (\t ->Prelude.putStrLn $ L.intercalate "\n" $ show <$> t)=<< ((\x -> lex x (PS.initialPos ""))<$> BS.getContents)
+main = parseTest parser =<< ((\x -> lex x (PS.initialPos ""))<$> BS.getContents)
