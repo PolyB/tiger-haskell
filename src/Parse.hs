@@ -9,14 +9,17 @@ import Data.Maybe (Maybe(Just, Nothing))
 import Parse.TParser
 import Parse.Tokens
 import Parse.Tokens.Instance ((&))
-import Prelude ((>>), Int, show, String, (.), map, ($))
-import Text.Parsec (token, sepBy, optionMaybe, (<?>), sepBy1, many1)
+import Prelude ((>>), Int, show, String, (.), map, ($), const)
+import Text.Parsec (token, sepBy, optionMaybe, (<?>), sepBy1, many1, try)
 import Text.Parsec.Combinator (eof)
 import Text.Parsec.Expr
 import Data.ByteString as BS (ByteString)
 
 -- TODO output the AST
-parser = exp >> eof
+parser = msum [
+                exp
+               ,() <$ decs 
+               ] >> eof
 
 
 exps = () <$ exp `sepBy` (T_Semicolon&)
@@ -25,32 +28,52 @@ exp = buildExpressionParser optable $ msum [
           () <$ ( integer )
         , () <$ ( string )
         , () <$ ( (T_Nil&) )
+        , () <$ try (type_id >> (T_OBracket&) >> exp >> (T_EBracket&) >> (T_Of&) >> exp)
+        , () <$ try (type_id >> (T_OBrace&) >> ( (identifier >> (T_Equal&) >> exp ) `sepBy` (T_Comma&) ) >> (T_EBrace&) )
+
+        , () <$ try (identifier >> (T_OParen&) >> (exp `sepBy` (T_Comma&)) >> (T_EParen&))
+        , () <$ try (lvalue >> (T_Dot&) >> identifier >> (T_OParen&) >> ( exp `sepBy` (T_Comma&)) >> (T_EParen&))
 
         , () <$ ( (T_Minus&) >> exp )
         , () <$ ( (T_OParen&) >> exp >> (T_EParen&))
+
+        , () <$ try (lvalue >> (T_Assign&) >> exp)
 
         , () <$ ( (T_If&) >> exp >> (T_Then&) >> exp >> optionMaybe ( (T_Else&) >> exp) )
         , () <$ ( (T_While&) >> exp >> (T_Do&) >> exp )
         , () <$ ( (T_Let&) >> decs >> (T_In&) >> exps >> (T_End&))
         , () <$ ( (T_Break&) )
+        , () <$ ( (T_Let&) >> decs >> (T_In&) >> exps >> (T_End&) )
+        , () <$ lvalue
     ]
 
-decs = many1 dec
+lvalue = buildExpressionParser [[
+                                   Infix ((T_Dot&) $> nopeop) AssocLeft
+                                  ,Postfix (((T_OBracket&) >> exp >> (T_EBracket&)) $> const ())
+                                ]] (() <$ identifier)
 
+decs = many1 dec
 dec = msum [
-          () <$ ( (T_Import&) >> string ),
-          () <$ ( (T_Type&) >> identifier >> (T_Equal&) >> ty)
+           () <$ ( (T_Type&) >> identifier >> (T_Equal&) >> ty)
+          ,() <$ vardec
+          ,() <$ ( (T_Function&) >> identifier >> (T_OParen&) >> tyfields >> (T_EParen&) >> optionMaybe ( (T_Colon&) >> type_id ) >> (T_Equal&) >> exp )
+          ,() <$ ( (T_Primitive&) >> identifier >> (T_OParen&) >> tyfields >> (T_EParen&) >> optionMaybe ( (T_Colon&) >> type_id ))
+          ,() <$ ( (T_Import&) >> string )
           ]
           
 
 ty  = msum [
-          type_id,
-          ((T_Array&) >> (T_Of&) >> type_id)
+          () <$ type_id
+         ,((T_Array&) >> (T_Of&) >> type_id)
+         ,((T_OBrace&) >> tyfields >> (T_EBrace&))
         ]
 
 tyfields = (<$) () (identifier >> (T_Colon&) >> type_id) `sepBy1` (T_Comma&)
 
+vardec = (T_Var&) >> identifier >> optionMaybe ((T_Colon&) >> type_id) >> (T_Assign&) >> exp
+
 type_id = () <$ identifier
+
 nopeop _ _ = ()
 
 optable = (map . map) (\(x,y)-> Infix y x) [
