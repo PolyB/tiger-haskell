@@ -18,6 +18,7 @@ data Exp =  IfE       Exp Exp (Maybe Exp)
          |  NilE
          |  IntegerE  Int
          |  StringE   String
+           deriving (Eq, Show)
 
 
 
@@ -33,20 +34,24 @@ data Op =  MultOp
         |  SuperiorEqOp
         |  AndOp
         |  OrOp
+           deriving (Eq, Show)
 
 data LValue = VarLV     Var
             | FieldLV   LValue BS.ByteString
             | AccessLV  LValue Exp
+           deriving (Eq, Show)
 
 data Type = BaseT       BaseType
           | FieldsT     Fields
           | ArrayT      BaseType
+           deriving (Eq, Show)
 
 data Dec  = AliasD      BaseType Type
-          | VarD        Var (Maybe Type) Exp
-          | FunD        Var Fields (Maybe Type) Exp
-          | PrimD       Var Fields (Maybe Type) Exp
+          | VarD        Var (Maybe BaseType) Exp
+          | FunD        Var Fields (Maybe BaseType) Exp
+          | PrimD       Var Fields (Maybe BaseType)
           | ImportD     String
+           deriving (Eq, Show)
 
 type Fields = [(BS.ByteString, BaseType)]
 type Var = BS.ByteString

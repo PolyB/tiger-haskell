@@ -10,77 +10,83 @@ import Data.Maybe (Maybe(Just, Nothing))
 import Parse.TParser
 import Parse.Tokens
 import Parse.Tokens.Instance ((&))
-import Prelude ((>>), Int, show, String, (.), map, ($), const, return, (<$>))
+import Prelude ((>>), Int, show, String, (.), map, ($), return, (<$>), id)
 import Text.Parsec (token, sepBy, optionMaybe, (<?>), sepBy1, many1, try)
 import Text.Parsec.Combinator (eof)
 import Text.Parsec.Expr
 import Data.ByteString as BS (ByteString)
 import qualified Ast
 import Parse.ParseTh
+import Data.Either
 
 a <+> b = do { x <- a; y <- b; return (x,y) }
+a << b = do { x <- a ; _ <- b; return x }
 
--- TODO output the AST
+parser :: TParser (Either Ast.Exp [Ast.Dec])
 parser = msum [
-                () <$ exp
-               ,() <$ decs 
-               ] >> eof
+                Left  <$> exp
+               ,Right <$> decs 
+               ] << eof
 
 
-exps = () <$ exp `sepBy` (T_Semicolon&)
+exps = exp `sepBy` (T_Semicolon&)
 
 exp = buildExpressionParser optable $ msum [
-          Ast.IntegerE <$> ( integer )
-        , Ast.StringE <$> ( string )
-        , Ast.NilE <$ (T_Nil&)
+          Ast.IntegerE              <$> ( integer )
+        , Ast.StringE               <$> ( string )
+        , Ast.NilE                  <$ (T_Nil&)
         , [pars|x_x__x|] Ast.ArrayE <$> try (type_id <+> (T_OBracket&) <+> exp <+> (T_EBracket&) <+> (T_Of&) <+> exp)
-        , Ast.NilE <$ try (type_id >> (T_OBrace&) >> ( (identifier >> (T_Equal&) >> exp ) `sepBy` (T_Comma&) ) >> (T_EBrace&) )
+        , [pars|x_x_|] Ast.RecordE  <$> try (type_id <+> (T_OBrace&) <+> ( ([pars|x_x|] (,) <$>(identifier <+> (T_Equal&) <+> exp )) `sepBy` (T_Comma&) ) <+> (T_EBrace&) )
 
         , Ast.NilE <$ try (identifier >> (T_OParen&) >> (exp `sepBy` (T_Comma&)) >> (T_EParen&))
         , Ast.NilE <$ try (lvalue >> (T_Dot&) >> identifier >> (T_OParen&) >> ( exp `sepBy` (T_Comma&)) >> (T_EParen&))
 
         , Ast.NilE <$ ( (T_Minus&) >> exp )
-        , Ast.NilE <$ ( (T_OParen&) >> exp >> (T_EParen&))
+        , [pars|_x_|] id            <$> ( (T_OParen&) <+> exp <+> (T_EParen&))
 
-        , Ast.NilE <$ try (lvalue >> (T_Assign&) >> exp)
+        , [pars|x_x|] Ast.AssignE   <$> try (lvalue <+> (T_Assign&) <+> exp)
 
-        , Ast.NilE <$ ( (T_If&) >> exp >> (T_Then&) >> exp >> optionMaybe ( (T_Else&) >> exp) )
-        , Ast.NilE <$ ( (T_While&) >> exp >> (T_Do&) >> exp )
-        , Ast.NilE <$ ( (T_Let&) >> decs >> (T_In&) >> exps >> (T_End&))
-        , Ast.NilE <$ ( (T_Break&) )
-        , Ast.NilE <$ ( (T_Let&) >> decs >> (T_In&) >> exps >> (T_End&) )
-        , Ast.NilE <$ lvalue
+        , [pars|_x_xx|] Ast.IfE     <$> ( (T_If&) <+> exp <+> (T_Then&) <+> exp <+> optionMaybe ( (T_Else&) >> exp) )
+        , [pars|_x_x|] Ast.WhileE   <$> ( (T_While&) <+> exp <+> (T_Do&) <+> exp )
+        , [pars|_x_x_|] Ast.LetE    <$> ( (T_Let&) <+> decs <+> (T_In&) <+> exps <+> (T_End&))
+        , Ast.BreakE                <$  (T_Break&)
+        , Ast.LValueE               <$> lvalue
     ]
 
+lvalue :: TParser Ast.LValue
 lvalue = buildExpressionParser [[
-                                   Infix ((T_Dot&) $> nopeop) AssocLeft
-                                  ,Postfix (((T_OBracket&) >> exp >> (T_EBracket&)) $> const ())
-                                ]] (() <$ identifier)
+                                   Postfix (do (T_Dot&)
+                                               x <- identifier
+                                               return $ \v -> Ast.FieldLV v x)
+                                  ,Postfix (do
+                                             (T_OBracket&)
+                                             x <- exp
+                                             (T_EBracket&)
+                                             return $ \v -> Ast.AccessLV v x)
+                                ]] ( Ast.VarLV <$> identifier)
 
 decs = many1 dec
 dec = msum [
-           () <$ ( (T_Type&) >> identifier >> (T_Equal&) >> ty)
-          ,() <$ vardec
-          ,() <$ ( (T_Function&) >> identifier >> (T_OParen&) >> tyfields >> (T_EParen&) >> optionMaybe ( (T_Colon&) >> type_id ) >> (T_Equal&) >> exp )
-          ,() <$ ( (T_Primitive&) >> identifier >> (T_OParen&) >> tyfields >> (T_EParen&) >> optionMaybe ( (T_Colon&) >> type_id ))
-          ,() <$ ( (T_Import&) >> string )
+           [pars|_x_x|] Ast.AliasD    <$> ( (T_Type&) <+> identifier <+> (T_Equal&) <+> ty)
+          ,vardec
+          ,[pars|_x_x_x_x|] Ast.FunD  <$> ( (T_Function&) <+> identifier <+> (T_OParen&) <+> tyfields <+> (T_EParen&) <+> optionMaybe ( (T_Colon&) >> type_id ) <+> (T_Equal&) <+> exp )
+          ,[pars|_x_x_x|] Ast.PrimD   <$> ( (T_Primitive&) <+> identifier <+> (T_OParen&) <+> tyfields <+> (T_EParen&) <+> optionMaybe ( (T_Colon&) >> type_id ))
+          , Ast.ImportD <$> ( (T_Import&) >> string )
           ]
           
 
 ty  = msum [
-          () <$ type_id
-         ,() <$ ((T_Array&) >> (T_Of&) >> type_id)
-         ,((T_OBrace&) >> tyfields >> (T_EBrace&))
+          Ast.BaseT   <$> type_id
+         ,Ast.ArrayT  <$> ((T_Array&) >> (T_Of&) >> type_id)
+         ,[pars|_x_|] Ast.FieldsT <$> ((T_OBrace&) <+> tyfields <+> (T_EBrace&))
         ]
 
-tyfields = (<$) () (identifier >> (T_Colon&) >> type_id) `sepBy1` (T_Comma&)
+tyfields = ([pars|x_x|] (,) <$> (identifier <+> (T_Colon&) <+> type_id)) `sepBy1` (T_Comma&)
 
-vardec = (T_Var&) >> identifier >> optionMaybe ((T_Colon&) >> type_id) >> (T_Assign&) >> exp
+vardec = [pars|_xx_x|] Ast.VarD <$> ((T_Var&) <+> identifier <+> optionMaybe ((T_Colon&) >> type_id) <+> (T_Assign&) <+> exp)
 
 type_id:: TParser Ast.BaseType
 type_id = identifier
-
-nopeop _ _ = ()
 
 optable = (map . map) (\(x,y,z)-> Infix (y $> Ast.OpE z) x) [
             [
