@@ -21,16 +21,22 @@ parsi ('_':xs) = do
                   (p, e) <- parsi xs
                   return (TupP [p, WildP], e)
 
+parsi _ = error "bad input"
+
                  
 
 -- usage (\(x) -> f x) <$> [pars|x_] $ (string "A", char 'e')
 
+bp :: String -> Name -> Q Exp
+bp x n = do (p, e) <- parsi (reverse x)
+            return $ LamE [p]  (foldl AppE (VarE n) e)
 
 pars:: QuasiQuoter
-pars = QuasiQuoter { quoteExp = (\x -> do 
-                                      (p, e) <- parsi (reverse x)
-                                      return $ LamE [p] (TupE e)),
-                     quotePat = error "lol",
+pars = QuasiQuoter { quoteExp = (\x -> do
+                                  n <- newName "f"
+                                  r <- bp x n
+                                  return $ LamE [VarP n] r),
+                      quotePat = error "lol",
                      quoteType = error "lol",
                      quoteDec = error "lol"
 }

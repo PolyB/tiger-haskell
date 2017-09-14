@@ -33,7 +33,7 @@ exp = buildExpressionParser optable $ msum [
           Ast.IntegerE <$> ( integer )
         , Ast.StringE <$> ( string )
         , Ast.NilE <$ (T_Nil&)
-        , (\(a,b,c)->Ast.ArrayE a b c)<$> [pars|x_x__x|] <$> try (type_id <+> (T_OBracket&) <+> exp <+> (T_EBracket&) <+> (T_Of&) <+> exp)
+        , [pars|x_x__x|] Ast.ArrayE <$> try (type_id <+> (T_OBracket&) <+> exp <+> (T_EBracket&) <+> (T_Of&) <+> exp)
         , Ast.NilE <$ try (type_id >> (T_OBrace&) >> ( (identifier >> (T_Equal&) >> exp ) `sepBy` (T_Comma&) ) >> (T_EBrace&) )
 
         , Ast.NilE <$ try (identifier >> (T_OParen&) >> (exp `sepBy` (T_Comma&)) >> (T_EParen&))
