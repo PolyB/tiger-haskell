@@ -31,25 +31,6 @@ blex = mconcat [
      ,space
      ,string
      ,comment
-     ,mktok "array" T_Array
-     ,mktok "break" T_Break
-     ,mktok "do" T_Do
-     ,mktok "else" T_Else
-     ,mktok "end" T_End
-     ,mktok "for" T_For
-     ,mktok "function" T_Function
-     ,mktok "if" T_If
-     ,mktok "import" T_Import
-     ,mktok "in" T_In
-     ,mktok "let" T_Let
-     ,mktok "nil" T_Nil
-     ,mktok "of" T_Of
-     ,mktok "primitive" T_Primitive
-     ,mktok "then" T_Then
-     ,mktok "to" T_To
-     ,mktok "type" T_Type
-     ,mktok "var" T_Var
-     ,mktok "while" T_While
      ,mktokc ',' T_Comma
      ,mktokc '(' T_OParen
      ,mktokc ')' T_EParen
@@ -74,5 +55,30 @@ blex = mconcat [
      ,mktokc '&' T_And
      ,mktokc '|' T_Or
      ,integer
-     ,identifier
+     ,keywords
                 ]
+
+keywords :: Lexer
+keywords = tmap keywords_match identifier
+
+keywords_match:: Token -> Token
+keywords_match (T_Id "array"    ) = T_Array
+keywords_match (T_Id "break"    ) = T_Break
+keywords_match (T_Id "do"       ) = T_Do
+keywords_match (T_Id "else"     ) = T_Else
+keywords_match (T_Id "end"      ) = T_End
+keywords_match (T_Id "for"      ) = T_For
+keywords_match (T_Id "function" ) = T_Function
+keywords_match (T_Id "if"       ) = T_If
+keywords_match (T_Id "import"   ) = T_Import
+keywords_match (T_Id "in"       ) = T_In
+keywords_match (T_Id "let"      ) = T_Let
+keywords_match (T_Id "nil"      ) = T_Nil
+keywords_match (T_Id "of"       ) = T_Of
+keywords_match (T_Id "primitive") = T_Primitive
+keywords_match (T_Id "then"     ) = T_Then
+keywords_match (T_Id "to"       ) = T_To
+keywords_match (T_Id "type"     ) = T_Type
+keywords_match (T_Id "var"      ) = T_Var
+keywords_match (T_Id "while"    ) = T_While
+keywords_match a = a

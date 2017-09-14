@@ -19,3 +19,7 @@ instance Monoid Lexer where
 
 doLex:: Lexer -> BSL.ByteString -> Maybe (SourcePos->SourcePos, BSL.ByteString, Maybe Token)
 doLex (Lexer l) = l
+
+tmap :: (Token-> Token) -> Lexer -> Lexer
+tmap f (Lexer l) = Lexer $ \s -> (\(p, i, t) -> (p,i , f<$> t)) <$> l s
+

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Parse.Lexer.Identifier where
+module Parse.Lexer.Identifier (identifier) where
 
 import Parse.Lexer.Types
 import Parse.Tokens
