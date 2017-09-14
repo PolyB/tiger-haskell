@@ -1,5 +1,6 @@
 {-# LANGUAGE PostfixOperators #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-} 
+{-# LANGUAGE QuasiQuotes #-}
 
 module Parse (parser) where
 
@@ -9,12 +10,15 @@ import Data.Maybe (Maybe(Just, Nothing))
 import Parse.TParser
 import Parse.Tokens
 import Parse.Tokens.Instance ((&))
-import Prelude ((>>), Int, show, String, (.), map, ($), const)
+import Prelude ((>>), Int, show, String, (.), map, ($), const, return, (<$>))
 import Text.Parsec (token, sepBy, optionMaybe, (<?>), sepBy1, many1, try)
 import Text.Parsec.Combinator (eof)
 import Text.Parsec.Expr
 import Data.ByteString as BS (ByteString)
 import qualified Ast
+import Parse.ParseTh
+
+a <+> b = do { x <- a; y <- b; return (x,y) }
 
 -- TODO output the AST
 parser = msum [
@@ -26,10 +30,10 @@ parser = msum [
 exps = () <$ exp `sepBy` (T_Semicolon&)
 
 exp = buildExpressionParser optable $ msum [
-          Ast.NilE <$ ( integer )
-        , Ast.NilE <$ ( string )
-        , Ast.NilE <$ ( (T_Nil&) )
-        , Ast.NilE <$ try (type_id >> (T_OBracket&) >> exp >> (T_EBracket&) >> (T_Of&) >> exp)
+          Ast.IntegerE <$> ( integer )
+        , Ast.StringE <$> ( string )
+        , Ast.NilE <$ (T_Nil&)
+        , (\(a,b,c)->Ast.ArrayE a b c)<$> [pars|x_x__x|] <$> try (type_id <+> (T_OBracket&) <+> exp <+> (T_EBracket&) <+> (T_Of&) <+> exp)
         , Ast.NilE <$ try (type_id >> (T_OBrace&) >> ( (identifier >> (T_Equal&) >> exp ) `sepBy` (T_Comma&) ) >> (T_EBrace&) )
 
         , Ast.NilE <$ try (identifier >> (T_OParen&) >> (exp `sepBy` (T_Comma&)) >> (T_EParen&))

@@ -30,6 +30,7 @@ library
                       ,Parse.Lexer.String
                       ,Parse.Lexer.Types
                       ,Parse.Lexer.Comment
+                      ,Parse.ParseTh
 
   build-depends:       base >= 4.7 && < 5
                       ,bytestring
