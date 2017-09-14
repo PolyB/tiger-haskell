@@ -15,7 +15,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Parse
+  exposed-modules:     Ast
+                      ,Parse
                       ,Parse.Lexer
   other-modules:       Parse.TParser
                       ,Parse.Tokens

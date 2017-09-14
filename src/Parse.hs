@@ -14,10 +14,11 @@ import Text.Parsec (token, sepBy, optionMaybe, (<?>), sepBy1, many1, try)
 import Text.Parsec.Combinator (eof)
 import Text.Parsec.Expr
 import Data.ByteString as BS (ByteString)
+import qualified Ast
 
 -- TODO output the AST
 parser = msum [
-                exp
+                () <$ exp
                ,() <$ decs 
                ] >> eof
 
@@ -25,26 +26,26 @@ parser = msum [
 exps = () <$ exp `sepBy` (T_Semicolon&)
 
 exp = buildExpressionParser optable $ msum [
-          () <$ ( integer )
-        , () <$ ( string )
-        , () <$ ( (T_Nil&) )
-        , () <$ try (type_id >> (T_OBracket&) >> exp >> (T_EBracket&) >> (T_Of&) >> exp)
-        , () <$ try (type_id >> (T_OBrace&) >> ( (identifier >> (T_Equal&) >> exp ) `sepBy` (T_Comma&) ) >> (T_EBrace&) )
+          Ast.NilE <$ ( integer )
+        , Ast.NilE <$ ( string )
+        , Ast.NilE <$ ( (T_Nil&) )
+        , Ast.NilE <$ try (type_id >> (T_OBracket&) >> exp >> (T_EBracket&) >> (T_Of&) >> exp)
+        , Ast.NilE <$ try (type_id >> (T_OBrace&) >> ( (identifier >> (T_Equal&) >> exp ) `sepBy` (T_Comma&) ) >> (T_EBrace&) )
 
-        , () <$ try (identifier >> (T_OParen&) >> (exp `sepBy` (T_Comma&)) >> (T_EParen&))
-        , () <$ try (lvalue >> (T_Dot&) >> identifier >> (T_OParen&) >> ( exp `sepBy` (T_Comma&)) >> (T_EParen&))
+        , Ast.NilE <$ try (identifier >> (T_OParen&) >> (exp `sepBy` (T_Comma&)) >> (T_EParen&))
+        , Ast.NilE <$ try (lvalue >> (T_Dot&) >> identifier >> (T_OParen&) >> ( exp `sepBy` (T_Comma&)) >> (T_EParen&))
 
-        , () <$ ( (T_Minus&) >> exp )
-        , () <$ ( (T_OParen&) >> exp >> (T_EParen&))
+        , Ast.NilE <$ ( (T_Minus&) >> exp )
+        , Ast.NilE <$ ( (T_OParen&) >> exp >> (T_EParen&))
 
-        , () <$ try (lvalue >> (T_Assign&) >> exp)
+        , Ast.NilE <$ try (lvalue >> (T_Assign&) >> exp)
 
-        , () <$ ( (T_If&) >> exp >> (T_Then&) >> exp >> optionMaybe ( (T_Else&) >> exp) )
-        , () <$ ( (T_While&) >> exp >> (T_Do&) >> exp )
-        , () <$ ( (T_Let&) >> decs >> (T_In&) >> exps >> (T_End&))
-        , () <$ ( (T_Break&) )
-        , () <$ ( (T_Let&) >> decs >> (T_In&) >> exps >> (T_End&) )
-        , () <$ lvalue
+        , Ast.NilE <$ ( (T_If&) >> exp >> (T_Then&) >> exp >> optionMaybe ( (T_Else&) >> exp) )
+        , Ast.NilE <$ ( (T_While&) >> exp >> (T_Do&) >> exp )
+        , Ast.NilE <$ ( (T_Let&) >> decs >> (T_In&) >> exps >> (T_End&))
+        , Ast.NilE <$ ( (T_Break&) )
+        , Ast.NilE <$ ( (T_Let&) >> decs >> (T_In&) >> exps >> (T_End&) )
+        , Ast.NilE <$ lvalue
     ]
 
 lvalue = buildExpressionParser [[
@@ -64,7 +65,7 @@ dec = msum [
 
 ty  = msum [
           () <$ type_id
-         ,((T_Array&) >> (T_Of&) >> type_id)
+         ,() <$ ((T_Array&) >> (T_Of&) >> type_id)
          ,((T_OBrace&) >> tyfields >> (T_EBrace&))
         ]
 
@@ -72,29 +73,30 @@ tyfields = (<$) () (identifier >> (T_Colon&) >> type_id) `sepBy1` (T_Comma&)
 
 vardec = (T_Var&) >> identifier >> optionMaybe ((T_Colon&) >> type_id) >> (T_Assign&) >> exp
 
-type_id = () <$ identifier
+type_id:: TParser Ast.BaseType
+type_id = identifier
 
 nopeop _ _ = ()
 
-optable = (map . map) (\(x,y)-> Infix y x) [
+optable = (map . map) (\(x,y,z)-> Infix (y $> Ast.OpE z) x) [
             [
-              (AssocLeft, (T_Mult&) $> nopeop ),
-              (AssocLeft, (T_Div&) $> nopeop)
+              (AssocLeft, (T_Mult&), Ast.MultOp),
+              (AssocLeft, (T_Div&), Ast.DivOp)
             ],
             [
-              (AssocLeft, (T_Plus&) $> nopeop),
-              (AssocLeft, (T_Minus&) $> nopeop)
+              (AssocLeft, (T_Plus&), Ast.PlusOp),
+              (AssocLeft, (T_Minus&), Ast.MinusOp)
             ],
             [
-              (AssocNone, (T_Equal&) $> nopeop),
-              (AssocNone, (T_Diff&) $> nopeop),
-              (AssocNone, (T_Inferior&) $> nopeop),
-              (AssocNone, (T_Superior&) $> nopeop),
-              (AssocNone, (T_InferiorEQ&) $> nopeop),
-              (AssocNone, (T_SuperiorEQ&) $> nopeop)
+              (AssocNone, (T_Equal&), Ast.EqualOp),
+              (AssocNone, (T_Diff&), Ast.DiffOp),
+              (AssocNone, (T_Inferior&), Ast.InferiorOp),
+              (AssocNone, (T_Superior&), Ast.SuperiorOp),
+              (AssocNone, (T_InferiorEQ&), Ast.InferiorEqOp),
+              (AssocNone, (T_SuperiorEQ&), Ast.SuperiorEqOp)
             ],
-            [(AssocLeft, (T_And&) $> nopeop)],
-            [(AssocLeft, (T_Or&) $> nopeop)]
+            [(AssocLeft, (T_And&), Ast.AndOp)],
+            [(AssocLeft, (T_Or&), Ast.OrOp)]
           ]
 
 

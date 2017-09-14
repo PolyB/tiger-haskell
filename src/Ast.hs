@@ -1,5 +1,7 @@
 module Ast where
 
+import Data.ByteString as BS (ByteString)
+
 data Exp =  IfE       Exp Exp (Maybe Exp)
          |  WhileE    Exp Exp
          |  BreakE
@@ -7,12 +9,12 @@ data Exp =  IfE       Exp Exp (Maybe Exp)
          |  LetE      [Dec] [Exp]
          |  AssignE   LValue Exp
          |  SeqE      [Exp]
-         |  OpE       Exp Op Exp
+         |  OpE       Op Exp Exp
          |  MethodE   Var [Exp]
          |  FunCallE  Var [Exp]
          |  LValueE   LValue
          |  ArrayE    BaseType Exp Exp
-         |  RecordE   BaseType [(ByteString, Exp)]
+         |  RecordE   BaseType [(BS.ByteString, Exp)]
          |  NilE
          |  IntegerE  Int
          |  StringE   String
@@ -33,7 +35,7 @@ data Op =  MultOp
         |  OrOp
 
 data LValue = VarLV     Var
-            | FieldLV   LValue ByteString
+            | FieldLV   LValue BS.ByteString
             | AccessLV  LValue Exp
 
 data Type = BaseT       BaseType
@@ -46,6 +48,6 @@ data Dec  = AliasD      BaseType Type
           | PrimD       Var Fields (Maybe Type) Exp
           | ImportD     String
 
-newtype Fields = [(ByteString, BaseType)]
-newtype Var = !ByteString
-newtype BaseType = !ByteString
+type Fields = [(BS.ByteString, BaseType)]
+type Var = BS.ByteString
+type BaseType = BS.ByteString
