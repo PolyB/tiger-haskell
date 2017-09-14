@@ -111,7 +111,7 @@ integer = token (\(PosToken _ t) -> show t) pos test <?> "integer"
                   test _                        = Nothing
 
 identifier :: TParser BS.ByteString
-identifier = token (\(PosToken _ t) -> show t) pos test
+identifier = token (\(PosToken _ t) -> show t) pos test <?> "identifier"
             where pos   (PosToken p _)          = p
                   test  (PosToken _ (T_Id x))   = Just x
                   test _                        = Nothing
