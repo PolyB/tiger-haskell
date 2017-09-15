@@ -10,7 +10,7 @@ data Exp =  IfE       Exp Exp (Maybe Exp)
          |  AssignE   LValue Exp
          |  SeqE      [Exp]
          |  OpE       Op Exp Exp
-         |  MethodE   Var [Exp]
+         |  MethodE   LValue BS.ByteString [Exp]
          |  FunCallE  Var [Exp]
          |  LValueE   LValue
          |  ArrayE    BaseType Exp Exp

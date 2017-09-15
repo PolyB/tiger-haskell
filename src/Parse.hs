@@ -32,25 +32,25 @@ parser = msum [
 exps = exp `sepBy` (T_Semicolon&)
 
 exp = buildExpressionParser optable $ msum [
-          Ast.IntegerE              <$> ( integer )
-        , Ast.StringE               <$> ( string )
-        , Ast.NilE                  <$ (T_Nil&)
-        , [pars|x_x__x|] Ast.ArrayE <$> try (type_id <+> (T_OBracket&) <+> exp <+> (T_EBracket&) <+> (T_Of&) <+> exp)
-        , [pars|x_x_|] Ast.RecordE  <$> try (type_id <+> (T_OBrace&) <+> ( ([pars|x_x|] (,) <$>(identifier <+> (T_Equal&) <+> exp )) `sepBy` (T_Comma&) ) <+> (T_EBrace&) )
+          Ast.IntegerE                          <$> integer
+        , Ast.StringE                           <$> string
+        , Ast.NilE                              <$  (T_Nil&)
+        , [pars|x_x__x|] Ast.ArrayE             <$> try (type_id <+> (T_OBracket&) <+> exp <+> (T_EBracket&) <+> (T_Of&) <+> exp)
+        , [pars|x_x_|] Ast.RecordE              <$> try (type_id <+> (T_OBrace&) <+> ( ([pars|x_x|] (,) <$>(identifier <+> (T_Equal&) <+> exp )) `sepBy` (T_Comma&) ) <+> (T_EBrace&) )
 
-        , Ast.NilE <$ try (identifier >> (T_OParen&) >> (exp `sepBy` (T_Comma&)) >> (T_EParen&))
-        , Ast.NilE <$ try (lvalue >> (T_Dot&) >> identifier >> (T_OParen&) >> ( exp `sepBy` (T_Comma&)) >> (T_EParen&))
+        , [pars|x_x_|] Ast.FunCallE             <$> try (identifier <+> (T_OParen&) <+> (exp `sepBy` (T_Comma&)) <+> (T_EParen&))
+        , [pars|x_x_x_|] Ast.MethodE            <$> try (lvalue <+> (T_Dot&) <+> identifier <+> (T_OParen&) <+> ( exp `sepBy` (T_Comma&)) <+> (T_EParen&))
 
-        , Ast.NilE <$ ( (T_Minus&) >> exp )
-        , [pars|_x_|] id            <$> ( (T_OParen&) <+> exp <+> (T_EParen&))
+        , Ast.OpE Ast.MinusOp (Ast.IntegerE 0)  <$> ((T_Minus&) >> exp)
+        , [pars|_x_|] id                        <$> ((T_OParen&) <+> exp <+> (T_EParen&))
 
-        , [pars|x_x|] Ast.AssignE   <$> try (lvalue <+> (T_Assign&) <+> exp)
+        , [pars|x_x|] Ast.AssignE               <$> try (lvalue <+> (T_Assign&) <+> exp)
 
-        , [pars|_x_xx|] Ast.IfE     <$> ( (T_If&) <+> exp <+> (T_Then&) <+> exp <+> optionMaybe ( (T_Else&) >> exp) )
-        , [pars|_x_x|] Ast.WhileE   <$> ( (T_While&) <+> exp <+> (T_Do&) <+> exp )
-        , [pars|_x_x_|] Ast.LetE    <$> ( (T_Let&) <+> decs <+> (T_In&) <+> exps <+> (T_End&))
-        , Ast.BreakE                <$  (T_Break&)
-        , Ast.LValueE               <$> lvalue
+        , [pars|_x_xx|] Ast.IfE                 <$> ((T_If&) <+> exp <+> (T_Then&) <+> exp <+> optionMaybe ( (T_Else&) >> exp) )
+        , [pars|_x_x|] Ast.WhileE               <$> ((T_While&) <+> exp <+> (T_Do&) <+> exp )
+        , [pars|_x_x_|] Ast.LetE                <$> ((T_Let&) <+> decs <+> (T_In&) <+> exps <+> (T_End&))
+        , Ast.BreakE                            <$  (T_Break&)
+        , Ast.LValueE                           <$> lvalue
     ]
 
 lvalue :: TParser Ast.LValue
