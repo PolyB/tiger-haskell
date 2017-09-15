@@ -18,6 +18,7 @@ import Data.ByteString as BS (ByteString)
 import qualified Ast
 import Parse.ParseTh
 import Data.Either
+import Parse.PostFix
 
 a <+> b = do { x <- a; y <- b; return (x,y) }
 a << b = do { x <- a ; _ <- b; return x }
@@ -54,17 +55,18 @@ exp = buildExpressionParser optable $ msum [
         , Ast.LValueE                           <$> lvalue
     ]
 
-lvalue :: TParser Ast.LValue
-lvalue = buildExpressionParser [[
-                                   Postfix (do (T_Dot&)
-                                               x <- identifier
-                                               return $ \v -> Ast.FieldLV v x)
-                                  ,Postfix (do
-                                             (T_OBracket&)
-                                             x <- exp
-                                             (T_EBracket&)
-                                             return $ \v -> Ast.AccessLV v x)
-                                ]] ( Ast.VarLV <$> identifier)
+lvalue = postfix [
+                    (do 
+                          (T_Dot&)
+                          x <- identifier
+                          return $ \v -> Ast.FieldLV v x),
+                    (do
+                         (T_OBracket&)
+                         x <- exp
+                         (T_EBracket&)
+                         return $ \v -> Ast.AccessLV v x)
+
+                  ] (( Ast.VarLV <$> identifier) <?> "lvalue")
 
 decs = many dec
 dec = msum [
@@ -87,7 +89,7 @@ tyfields = ([pars|x_x|] (,) <$> (identifier <+> (T_Colon&) <+> type_id)) `sepBy`
 vardec = [pars|_xx_x|] Ast.VarD <$> ((T_Var&) <+> identifier <+> optionMaybe ((T_Colon&) >> type_id) <+> (T_Assign&) <+> exp)
 
 type_id:: TParser Ast.BaseType
-type_id = identifier
+type_id = identifier <?> "type_id"
 
 optable = (map . map) (\(x,y,z)-> Infix (y $> Ast.OpE z) x) [
             [

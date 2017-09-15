@@ -21,7 +21,7 @@ library
                       ,Parse.Tokens
 
   other-modules:       Parse.TParser
-                      ,Parse.Tokens.Instance
+                      ,Parse.Lexer.Comment
                       ,Parse.Lexer.Eol
                       ,Parse.Lexer.Error
                       ,Parse.Lexer.Identifier
@@ -30,8 +30,9 @@ library
                       ,Parse.Lexer.Space
                       ,Parse.Lexer.String
                       ,Parse.Lexer.Types
-                      ,Parse.Lexer.Comment
                       ,Parse.ParseTh
+                      ,Parse.PostFix
+                      ,Parse.Tokens.Instance
 
   build-depends:       base >= 4.7 && < 5
                       ,bytestring
