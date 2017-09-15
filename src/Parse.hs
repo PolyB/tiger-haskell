@@ -10,8 +10,8 @@ import Data.Maybe (Maybe(Just, Nothing))
 import Parse.TParser
 import Parse.Tokens
 import Parse.Tokens.Instance ((&))
-import Prelude ((>>), Int, show, String, (.), map, ($), return, (<$>), id)
-import Text.Parsec (token, sepBy, optionMaybe, (<?>), sepBy1, many1, try)
+import Prelude ((>>), Int, show, String, (.), map, ($), return, (<$>))
+import Text.Parsec (token, sepBy, optionMaybe, (<?>), many, try)
 import Text.Parsec.Combinator (eof)
 import Text.Parsec.Expr
 import Data.ByteString as BS (ByteString)
@@ -42,13 +42,14 @@ exp = buildExpressionParser optable $ msum [
         , [pars|x_x_x_|] Ast.MethodE            <$> try (lvalue <+> (T_Dot&) <+> identifier <+> (T_OParen&) <+> ( exp `sepBy` (T_Comma&)) <+> (T_EParen&))
 
         , Ast.OpE Ast.MinusOp (Ast.IntegerE 0)  <$> ((T_Minus&) >> exp)
-        , [pars|_x_|] id                        <$> ((T_OParen&) <+> exp <+> (T_EParen&))
+        , [pars|_x_|] Ast.SeqE                  <$> ((T_OParen&) <+> exps <+> (T_EParen&))
 
         , [pars|x_x|] Ast.AssignE               <$> try (lvalue <+> (T_Assign&) <+> exp)
 
         , [pars|_x_xx|] Ast.IfE                 <$> ((T_If&) <+> exp <+> (T_Then&) <+> exp <+> optionMaybe ( (T_Else&) >> exp) )
         , [pars|_x_x|] Ast.WhileE               <$> ((T_While&) <+> exp <+> (T_Do&) <+> exp )
         , [pars|_x_x_|] Ast.LetE                <$> ((T_Let&) <+> decs <+> (T_In&) <+> exps <+> (T_End&))
+        , [pars|_x_x_x_x|]  Ast.ForE            <$> ((T_For&) <+> identifier <+> (T_Assign&) <+> exp <+> (T_To&) <+> exp <+> (T_Do&) <+> exp)
         , Ast.BreakE                            <$  (T_Break&)
         , Ast.LValueE                           <$> lvalue
     ]
@@ -65,7 +66,7 @@ lvalue = buildExpressionParser [[
                                              return $ \v -> Ast.AccessLV v x)
                                 ]] ( Ast.VarLV <$> identifier)
 
-decs = many1 dec
+decs = many dec
 dec = msum [
            [pars|_x_x|] Ast.AliasD    <$> ( (T_Type&) <+> identifier <+> (T_Equal&) <+> ty)
           ,vardec
@@ -81,7 +82,7 @@ ty  = msum [
          ,[pars|_x_|] Ast.FieldsT <$> ((T_OBrace&) <+> tyfields <+> (T_EBrace&))
         ]
 
-tyfields = ([pars|x_x|] (,) <$> (identifier <+> (T_Colon&) <+> type_id)) `sepBy1` (T_Comma&)
+tyfields = ([pars|x_x|] (,) <$> (identifier <+> (T_Colon&) <+> type_id)) `sepBy` (T_Comma&)
 
 vardec = [pars|_xx_x|] Ast.VarD <$> ((T_Var&) <+> identifier <+> optionMaybe ((T_Colon&) >> type_id) <+> (T_Assign&) <+> exp)
 
