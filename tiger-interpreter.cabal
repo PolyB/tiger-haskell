@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Ast
+                      ,Ast.PrettyPrinter
                       ,Parse
                       ,Parse.Lexer
                       ,Parse.Tokens
@@ -54,6 +55,16 @@ executable tiger-interpreter-exe
 
 executable tiger-parse-debug
   hs-source-dirs:      debugparse
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , tiger-interpreter
+                     , parsec 
+                     , bytestring
+  default-language:    Haskell2010
+
+executable tiger-astprinter
+  hs-source-dirs:      astprinter
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base

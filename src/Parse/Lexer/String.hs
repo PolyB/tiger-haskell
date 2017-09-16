@@ -57,8 +57,6 @@ escapeSequence s = fromMaybe (Left UnfinishedString, s, id) $ escape <$> BSLC.un
 
                                               _                   -> (Left BadEscapeCharacter, s, srcinc 1)
 
-
-
 -- TODO : the string parser is ugly
 stringParser:: BSL.ByteString -> (Either ErrorTokenType (Maybe Char), BSL.ByteString, SourcePos -> SourcePos)
 stringParser s = fromMaybe (Left UnfinishedString, s, id) $ (\(c, r) -> case c of 
@@ -78,5 +76,5 @@ string = Lexer $ \input -> BSLC.uncons input >>= (\(c,r) -> if c == '"' then Jus
                                                           (Right Nothing, rest,f) -> (f, rest, Right "")
                                                           (Right (Just c), rest, f) -> case parseiterate rest of
                                                                                              (rf, rr, Right ps) -> (f . rf, rr, Right (c:ps))
-                                                                                             (rf, rr, Left BadEscapeCharacter) -> (\(stringrest, r) ->(f . rf . flip (BSLC.foldl updatePosChar) stringrest, r, Left BadEscapeCharacter)) $ BSLC.break (=='=') rr
+                                                                                             (rf, rr, Left BadEscapeCharacter) -> (\(stringrest, r) ->(f . rf . flip (BSLC.foldl updatePosChar) stringrest, r, Left BadEscapeCharacter)) $ BSLC.break (=='"') rr
                                                                                              (rf, rr, x)  -> (f . rf, rr, x)
