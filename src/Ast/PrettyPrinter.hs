@@ -4,6 +4,7 @@ module Ast.PrettyPrinter (prettyPrint) where
 import Data.ByteString.Char8 as BS
 import Data.List as L
 import Ast
+import Prelude ((++), (<$>), String, Maybe(Just, Nothing), show)
 
 printFields:: Fields -> String
 printFields f = L.intercalate "," ((\(x,y) -> BS.unpack x ++ ":" ++ BS.unpack y) <$> f)

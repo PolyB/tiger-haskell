@@ -3,7 +3,6 @@ module Parse.PostFix (postfix) where
 import Parse.TParser
 import Text.Parsec
 import Control.Monad
-import Debug.Trace
 
 
 
