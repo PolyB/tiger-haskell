@@ -13,7 +13,7 @@ import Data.Maybe (Maybe(Nothing, Just))
 import Parse.Lexer.MkTok
 
 identifier:: Lexer
-identifier = (mktok "_main" $ T_Id "_main" ) <> 
+identifier = mktok "_main" (T_Id "_main" ) <> 
              (Lexer $ \str -> do 
                               (c, rs) <- BSLC.uncons str
                               unless (C.isAlpha c) Nothing

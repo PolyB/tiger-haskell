@@ -9,6 +9,7 @@ import Control.Monad (mapM_)
 import Text.Parsec
 import Text.Parsec.Pos as PS
 import Ast.PrettyPrinter
+import System.IO
 import qualified Ast
 
 
@@ -27,6 +28,7 @@ psuccess x = do
 
 main :: IO ()
 main = do
+        hSetBuffering stdout NoBuffering
         putStrLn "PARSE DEBUG : "
         tokens <- (\x -> lex x (PS.initialPos "")) <$> BS.getContents
         putStrLn " TOKENS : "

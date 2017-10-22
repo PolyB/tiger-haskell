@@ -3,7 +3,6 @@
 module Parse.Tokens where
 
 import Text.Parsec.Pos
-import Data.ByteString
 
 import Language.Haskell.TH.Syntax
 

@@ -7,15 +7,17 @@ import Data.ByteString.Lazy as BSL
 import Text.Parsec.Pos
 import Data.Char as C
 import Data.Maybe (fromMaybe)
-import Control.Monad (unless)
+import Control.Monad (unless, (>=>))
 
+-- TODO : the string parser is ugly
+--
 hex:: BSL.ByteString -> Maybe (Char, BSL.ByteString, SourcePos -> SourcePos)
 hex r0 = do
         (x1,r1) <- BSLC.uncons r0
         unless (C.isHexDigit x1) Nothing
         (x2,r2) <- BSLC.uncons r1
         unless (C.isHexDigit x2) Nothing
-        let res = chr $ (C.digitToInt x1) * 16 + (C.digitToInt x2)
+        let res = chr $ C.digitToInt x1 * 16 + C.digitToInt x2
         return (res, r2, srcinc 4)
 
 oct:: BSL.ByteString -> Maybe (Char, BSL.ByteString, SourcePos -> SourcePos)
@@ -28,9 +30,9 @@ oct r0 = do
           unless (C.isOctDigit x3) Nothing
 
           let res = chr $ sum [
-                               (C.digitToInt x1) * 64
-                              ,(C.digitToInt x2) * 8
-                              ,(C.digitToInt x3)
+                               C.digitToInt x1 * 64
+                              ,C.digitToInt x2 * 8
+                              ,C.digitToInt x3
                               ]
           return (res, r3, srcinc 4)
 
@@ -48,16 +50,15 @@ escapeSequence s = fromMaybe (Left UnfinishedString, s, id) $ escape <$> BSLC.un
                                               'r'                 -> (Right $ Just '\r', rest, srcinc 2)
                                               't'                 -> (Right $ Just '\t', rest, srcinc 2)
                                               'v'                 -> (Right $ Just '\v', rest, srcinc 2)
-                                              'x'                 -> (case hex rest of
+                                              'x'                 -> case hex rest of
                                                                            Just (c, r, p) -> (Right $ Just c, r, p)
-                                                                           Nothing -> (Left BadEscapeCharacter, s, srcinc 1))
-                                              _ | C.isOctDigit x  -> (case oct s of
+                                                                           Nothing -> (Left BadEscapeCharacter, s, srcinc 1)
+                                              _ | C.isOctDigit x  -> case oct s of
                                                                            Just (c, r, p) -> (Right $ Just c, r, p)
-                                                                           Nothing -> (Left BadEscapeCharacter, s, srcinc 1))
+                                                                           Nothing -> (Left BadEscapeCharacter, s, srcinc 1)
 
                                               _                   -> (Left BadEscapeCharacter, s, srcinc 1)
 
--- TODO : the string parser is ugly
 stringParser:: BSL.ByteString -> (Either ErrorTokenType (Maybe Char), BSL.ByteString, SourcePos -> SourcePos)
 stringParser s = fromMaybe (Left UnfinishedString, s, id) $ (\(c, r) -> case c of 
                                                                       '\n' -> (Left NewlineInString, takeoneIf (=='\r') r, srcnl)
@@ -66,10 +67,10 @@ stringParser s = fromMaybe (Left UnfinishedString, s, id) $ (\(c, r) -> case c o
                                                                       '"'  -> (Right Nothing, r,  srcinc 1)
                                                                       _    -> (Right $ Just c, r, srcinc 1)
                                                                             ) <$> BSLC.uncons s
-                   where takeoneIf p str = fromMaybe str $ ((\(c,r) -> if p c then Just r else Nothing) =<< BSLC.uncons str)
+                   where takeoneIf p str = fromMaybe str ((\(c,r) -> if p c then Just r else Nothing) =<< BSLC.uncons str)
 
 string :: Lexer
-string = Lexer $ \input -> BSLC.uncons input >>= (\(c,r) -> if c == '"' then Just $ stringlex r else Nothing)
+string = Lexer (BSLC.uncons >=> (\(c,r) -> if c == '"' then Just $ stringlex r else Nothing))
                             where stringlex str = (\(f, r, t) -> (f , r, Just $ either T_Err T_String t)) $ parseiterate str
                                   parseiterate s  = case stringParser s of
                                                           (Left t, rest, f) -> (f, rest, Left t)

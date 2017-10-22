@@ -23,7 +23,7 @@ lex:: BSL.ByteString -> SourcePos -> [PosToken]
 lex s p = case doLex (err blex) s of
             Nothing -> []
             Just (pos,rest, Nothing) -> lex rest (pos p)
-            Just (pos,rest, Just tok) -> (PosToken p tok):(lex rest (pos p))
+            Just (pos,rest, Just tok) -> PosToken p tok:lex rest (pos p)
 
 blex::  Lexer
 blex = mconcat [
@@ -59,26 +59,26 @@ blex = mconcat [
                 ]
 
 keywords :: Lexer
-keywords = tmap keywords_match identifier
+keywords = tmap keywordsMatch identifier
 
-keywords_match:: Token -> Token
-keywords_match (T_Id "array"    ) = T_Array
-keywords_match (T_Id "break"    ) = T_Break
-keywords_match (T_Id "do"       ) = T_Do
-keywords_match (T_Id "else"     ) = T_Else
-keywords_match (T_Id "end"      ) = T_End
-keywords_match (T_Id "for"      ) = T_For
-keywords_match (T_Id "function" ) = T_Function
-keywords_match (T_Id "if"       ) = T_If
-keywords_match (T_Id "import"   ) = T_Import
-keywords_match (T_Id "in"       ) = T_In
-keywords_match (T_Id "let"      ) = T_Let
-keywords_match (T_Id "nil"      ) = T_Nil
-keywords_match (T_Id "of"       ) = T_Of
-keywords_match (T_Id "primitive") = T_Primitive
-keywords_match (T_Id "then"     ) = T_Then
-keywords_match (T_Id "to"       ) = T_To
-keywords_match (T_Id "type"     ) = T_Type
-keywords_match (T_Id "var"      ) = T_Var
-keywords_match (T_Id "while"    ) = T_While
-keywords_match a = a
+keywordsMatch:: Token -> Token
+keywordsMatch (T_Id "array"    ) = T_Array
+keywordsMatch (T_Id "break"    ) = T_Break
+keywordsMatch (T_Id "do"       ) = T_Do
+keywordsMatch (T_Id "else"     ) = T_Else
+keywordsMatch (T_Id "end"      ) = T_End
+keywordsMatch (T_Id "for"      ) = T_For
+keywordsMatch (T_Id "function" ) = T_Function
+keywordsMatch (T_Id "if"       ) = T_If
+keywordsMatch (T_Id "import"   ) = T_Import
+keywordsMatch (T_Id "in"       ) = T_In
+keywordsMatch (T_Id "let"      ) = T_Let
+keywordsMatch (T_Id "nil"      ) = T_Nil
+keywordsMatch (T_Id "of"       ) = T_Of
+keywordsMatch (T_Id "primitive") = T_Primitive
+keywordsMatch (T_Id "then"     ) = T_Then
+keywordsMatch (T_Id "to"       ) = T_To
+keywordsMatch (T_Id "type"     ) = T_Type
+keywordsMatch (T_Id "var"      ) = T_Var
+keywordsMatch (T_Id "while"    ) = T_While
+keywordsMatch a = a

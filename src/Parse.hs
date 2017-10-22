@@ -57,15 +57,15 @@ exp = buildExpressionParser optable $ Fix <$> msum [
           elsee = optionMaybe $ [ti|else "%exp"|]
 
 lvalue = postfix [
-                    (do 
+                    do 
                           (T_Dot&)
                           x <- identifier
-                          return $ \v -> Ast.FieldLV v x),
-                    (do
+                          return $ \v -> Ast.FieldLV v x,
+                    do
                          (T_OBracket&)
                          x <- exp
                          (T_EBracket&)
-                         return $ \v -> Ast.AccessLV v x)
+                         return $ \v -> Ast.AccessLV v x
 
                   ] (( Ast.VarLV <$> identifier) <?> "lvalue")
 
@@ -90,6 +90,8 @@ tyfields = [t|"%identifier" : "%type_id"|] (,) `sepBy` [ti|,|]
 
 vardec = [t|var "%identifier" "%opt_type" = "%exp" |] Ast.VarD
   where opt_type = optionMaybe [ti| : "%type_id"|]
+
+
 
 type_id:: TParser Ast.BaseType
 type_id = identifier <?> "type_id"
