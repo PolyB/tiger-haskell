@@ -1,26 +1,29 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module Ast where
 
 import Data.ByteString as BS (ByteString)
+import Data.Functor.Foldable
+import Text.Show.Deriving
 
-data Exp =  IfE       Exp Exp (Maybe Exp)
-         |  WhileE    Exp Exp
-         |  BreakE
-         |  ForE      Var Exp Exp Exp
-         |  LetE      [Dec] [Exp]
-         |  AssignE   LValue Exp
-         |  SeqE      [Exp]
-         |  OpE       Op Exp Exp
-         |  MethodE   LValue BS.ByteString [Exp]
-         |  FunCallE  Var [Exp]
-         |  LValueE   LValue
-         |  ArrayE    BaseType Exp Exp
-         |  RecordE   BaseType [(BS.ByteString, Exp)]
-         |  NilE
-         |  IntegerE  Int
-         |  StringE   String
-           deriving (Eq, Show)
-
-
+data ExpF e =  IfE       e e (Maybe e)
+            |  WhileE    e e
+            |  BreakE
+            |  ForE      Var e e e
+            |  LetE      [DecF e] [e]
+            |  AssignE   (LValueF e) e
+            |  SeqE      [e]
+            |  OpE       Op e e
+            |  MethodE   (LValueF e) BS.ByteString [e]
+            |  FunCallE  Var [e]
+            |  LValueE   (LValueF e)
+            |  ArrayE    BaseType e e
+            |  RecordE   BaseType [(BS.ByteString, e)]
+            |  NilE
+            |  IntegerE  Int
+            |  StringE   String
+              deriving (Functor, Show)
 
 data Op =  MultOp
         |  DivOp
@@ -36,23 +39,33 @@ data Op =  MultOp
         |  OrOp
            deriving (Eq, Show)
 
-data LValue = VarLV     Var
-            | FieldLV   LValue BS.ByteString
-            | AccessLV  LValue Exp
-           deriving (Eq, Show)
+data LValueF e = VarLV     Var
+              | FieldLV   (LValueF e) BS.ByteString
+              | AccessLV  (LValueF e) e
+              deriving (Functor, Show)
 
 data Type = BaseT       BaseType
           | FieldsT     Fields
           | ArrayT      BaseType
            deriving (Eq, Show)
 
-data Dec  = AliasD      BaseType Type
-          | VarD        Var (Maybe BaseType) Exp
-          | FunD        Var Fields (Maybe BaseType) Exp
-          | PrimD       Var Fields (Maybe BaseType)
-          | ImportD     String
-           deriving (Eq, Show)
+data DecF e = AliasD      BaseType Type
+            | VarD        Var (Maybe BaseType) e
+            | FunD        Var Fields (Maybe BaseType) e
+            | PrimD       Var Fields (Maybe BaseType)
+            | ImportD     String
+            deriving (Functor, Show)
+
+
+type Exp = Fix ExpF
+type Dec = DecF Exp
+type LValue = LValueF Exp
+
 
 type Fields = [(BS.ByteString, BaseType)]
 type Var = BS.ByteString
 type BaseType = BS.ByteString
+
+deriveShow1 ''DecF
+deriveShow1 ''ExpF
+deriveShow1 ''LValueF
