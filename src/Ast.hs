@@ -3,7 +3,6 @@
 
 module Ast where
 
-import Data.ByteString as BS (ByteString)
 import Data.Functor.Foldable
 import Text.Show.Deriving
 
@@ -15,11 +14,11 @@ data ExpF e =  IfE       e e (Maybe e)
             |  AssignE   (LValueF e) e
             |  SeqE      [e]
             |  OpE       Op e e
-            |  MethodE   (LValueF e) BS.ByteString [e]
+            |  MethodE   (LValueF e) String [e]
             |  FunCallE  Var [e]
             |  LValueE   (LValueF e)
             |  ArrayE    BaseType e e
-            |  RecordE   BaseType [(BS.ByteString, e)]
+            |  RecordE   BaseType [(String, e)]
             |  NilE
             |  IntegerE  Int
             |  StringE   String
@@ -40,7 +39,7 @@ data Op =  MultOp
            deriving (Eq, Show)
 
 data LValueF e = VarLV     Var
-              | FieldLV   (LValueF e) BS.ByteString
+              | FieldLV   (LValueF e) String
               | AccessLV  (LValueF e) e
               deriving (Functor, Show)
 
@@ -62,9 +61,9 @@ type Dec = DecF Exp
 type LValue = LValueF Exp
 
 
-type Fields = [(BS.ByteString, BaseType)]
-type Var = BS.ByteString
-type BaseType = BS.ByteString
+type Fields = [(String, BaseType)]
+type Var = String
+type BaseType = String
 
 deriveShow1 ''DecF
 deriveShow1 ''ExpF

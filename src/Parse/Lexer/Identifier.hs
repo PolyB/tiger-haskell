@@ -19,4 +19,4 @@ identifier = (mktok "_main" $ T_Id "_main" ) <>
                               unless (C.isAlpha c) Nothing
                               let (p,r) = BSLC.span (liftM2 (||) C.isAlphaNum (=='_')) rs
                               let sidentifier = BSLC.cons c p
-                              return (srcinc $ fromIntegral $length sidentifier, r, Just $ T_Id $ BSLC.toStrict sidentifier))
+                              return (srcinc $ fromIntegral $length sidentifier, r, Just $ T_Id $ BSLC.unpack sidentifier))

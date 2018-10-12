@@ -1,7 +1,11 @@
+{-# LANGUAGE DeriveLift #-}
+
 module Parse.Tokens where
 
 import Text.Parsec.Pos
 import Data.ByteString
+
+import Language.Haskell.TH.Syntax
 
 data PosToken = PosToken SourcePos Token
            deriving (Show)
@@ -50,13 +54,13 @@ data Token = T_Int     !Int
            | T_Superior
            | T_And
            | T_Or
-           | T_Id       !ByteString
+           | T_Id       !String
            | T_Err      ErrorTokenType
-           deriving (Eq, Show)
+           deriving (Eq, Show, Lift)
            -- TODO : proper show instance
 
 data ErrorTokenType = UnknownToken !String
                     | UnfinishedString
                     | NewlineInString
                     | BadEscapeCharacter
-           deriving (Eq, Show)
+           deriving (Eq, Show, Lift)

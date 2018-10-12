@@ -3,10 +3,12 @@ import Data.ByteString.Lazy as BS (getContents)
 import Parse
 import Parse.Lexer
 import Parse.Tokens
-import Prelude (IO, print, (<$>), ($), putStrLn, Either, either, snd)
+import Prelude (IO, print, (<$>), ($), (.), putStrLn, Either, either, snd, map)
 import System.Exit (exitWith, ExitCode(ExitFailure, ExitSuccess))
+import Control.Monad (mapM_)
 import Text.Parsec
 import Text.Parsec.Pos as PS
+import Ast.PrettyPrinter
 import qualified Ast
 
 
@@ -20,6 +22,7 @@ psuccess:: Either Ast.Exp [Ast.Dec] -> IO ()
 psuccess x = do 
               putStrLn "SUCCESS : "
               print x
+              mapM_ print x
               exitWith ExitSuccess
 
 main :: IO ()

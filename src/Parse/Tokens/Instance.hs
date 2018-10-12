@@ -3,7 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module Parse.Tokens.Instance ((&)) where
+module Parse.Tokens.Instance ((&), mktoken) where
 
 import Parse.TParser
 import Parse.Tokens

@@ -3,14 +3,17 @@
 
 module TestParser where
 
+import Parse.Lexer as L
 import Test.QuickCheck as Q
 import Test.QuickCheck.Property as QP
 import Text.Parsec.Prim as PS
 import Data.ByteString.Char8
 import Parse
+import qualified Data.ByteString.Lazy.Char8 as BSLC
+import Text.Parsec.Pos
 
-assertParseOk :: ByteString -> QP.Property
-assertParseOk s = QP.once $ QP.label ("`" ++ unpack s ++ "`") $ (case (PS.parse parser "" s ) of
+assertParseOk :: BSLC.ByteString -> QP.Property
+assertParseOk s = QP.once $ QP.label ("`" ++ BSLC.unpack s ++ "`") $ (case (PS.parse parser "" $ L.lex s (newPos "test" 0 0)) of
                     Left err -> QP.failed { QP.reason = show err}
                     Right a -> QP.succeeded)
 
