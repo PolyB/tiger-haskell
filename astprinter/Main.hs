@@ -6,12 +6,12 @@ import Text.Parsec
 import Ast.PrettyPrinter
 import Prelude ((<$>), ($), IO, Either(Left, Right), print, putStrLn)
 import Data.List (intercalate)
-import Data.Functor.Foldable (unfix)
+import Data.Functor.Foldable (unfix, refix)
 
 main :: IO ()
 main = do
         tokens <- (\x -> lex x (PS.initialPos "")) <$> BS.getContents
         case parse parser "" tokens of
           Left x -> print x
-          Right (Left x) -> putStrLn $ prettyPrint $ unfix x
-          Right (Right x) -> putStrLn $ intercalate "\n" $ prettyPrint <$> x
+          Right (Left x) -> putStrLn $ prettyPrint $ x
+          Right (Right x) -> putStrLn $ intercalate "\n" $ (prettyPrintD <$> x)

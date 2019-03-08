@@ -1,15 +1,20 @@
 {-# LANGUAGE FlexibleInstances #-}
-module Ast.PrettyPrinter (prettyPrint) where
+module Ast.PrettyPrinter (prettyPrint, prettyPrintD) where
 --import Data.ByteString as BS
 import Ast
 import Data.ByteString.Char8 as BS
 import Data.Functor.Foldable
 import Data.List as L
 import Prelude ((++), (<$>), String, Maybe(Just, Nothing), show, ($))
-import Data.Functor (Functor)
+import Data.Functor (Functor, fmap)
+import Control.Comonad.Trans.Cofree
+import Data.Functor.Identity
 
-prettyPrint::(Functor a, Printable (a String)) => a Exp -> String
-prettyPrint f = pp $ cata pp <$> f
+prettyPrint::Exp a -> String
+prettyPrint f = cata pp f
+
+prettyPrintD::Dec a -> String
+prettyPrintD f = pp (fmap prettyPrint f)
 
 class Printable r where
   pp :: r -> String
@@ -18,6 +23,9 @@ instance Printable Fields where
   pp f = L.intercalate "," ((\(x,y) -> x ++ ":" ++ y) <$> f)
 
 
+instance Printable (e String) => Printable (CofreeF e ann String) where
+  pp (_ :< d) = pp d
+  
 
 instance Printable (LValueF String) where
   pp (VarLV x) = x

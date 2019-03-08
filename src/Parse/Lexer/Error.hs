@@ -6,7 +6,6 @@ import Data.ByteString.Lazy.Char8 as BSLC
 import Text.Parsec.Pos
 import Data.Maybe (isJust, fromJust)
 import Parse.Tokens
-import Data.Monoid
 
 skipUntilOk:: ByteString -> Lexer -> (SourcePos -> SourcePos, BSL.ByteString, String)
 skipUntilOk input (Lexer ref) = until 

@@ -5,6 +5,8 @@ module Ast where
 
 import Data.Functor.Foldable
 import Text.Show.Deriving
+import Control.Comonad.Cofree
+import Utils.Annotations
 
 data ExpF e =  IfE       e e (Maybe e)
             |  WhileE    e e
@@ -56,9 +58,13 @@ data DecF e = AliasD      BaseType Type
             deriving (Functor, Show)
 
 
-type Exp = Fix ExpF
-type Dec = DecF Exp
-type LValue = LValueF Exp
+type Exp_ = Fix ExpF
+type Dec_ = DecF Exp_
+type LValue_ = LValueF Exp_
+
+type Exp d = Cofree ExpF (Annotations d)
+type Dec d = DecF (Exp d)
+type LValue d = LValueF (Exp d)
 
 
 type Fields = [(String, BaseType)]

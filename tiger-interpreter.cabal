@@ -6,7 +6,7 @@ homepage:            https://bitbucket.org/PolyB/tiger-interpreter
 license:             BSD3
 license-file:        LICENSE
 author:              Adrien Stalain
-maintainer:          stalai_a@epita.fr
+maintainer:          adrien.stalain@epita.fr
 copyright:           2017 Adrien Stalain
 category:            Interpreter
 build-type:          Simple
@@ -33,6 +33,7 @@ library
                       ,Parse.ParseTh
                       ,Parse.PostFix
                       ,Parse.Tokens.Instance
+                      ,Utils.Annotations
 
   build-depends:       base >= 4.7 && < 5
                       ,bytestring
@@ -41,6 +42,7 @@ library
                       ,ghc-prim
                       ,deriving-compat
                       ,recursion-schemes
+                      ,free
   default-language:    Haskell2010
   ghc-options:         -Wall
 

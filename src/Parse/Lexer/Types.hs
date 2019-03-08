@@ -13,9 +13,11 @@ srcinc = flip incSourceColumn
 srcnl:: SourcePos -> SourcePos
 srcnl s = setSourceColumn (incSourceLine s 1) 0
 
+instance Semigroup Lexer where
+ (Lexer f) <> (Lexer f2) = Lexer $ \s -> mplus (f s) (f2 s)
+
 instance Monoid Lexer where
  mempty = Lexer $ const Nothing
- mappend (Lexer f) (Lexer f2) = Lexer $ \s -> mplus (f s) (f2 s)
 
 doLex:: Lexer -> BSL.ByteString -> Maybe (SourcePos->SourcePos, BSL.ByteString, Maybe Token)
 doLex (Lexer l) = l
